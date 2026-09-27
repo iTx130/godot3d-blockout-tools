@@ -1,0 +1,13 @@
+.godot/
+/android/
+/tests/evidence/
+/tests/cold_project/
+__pycache__/
+*.pyc
+
+# Local development docs and acceptance tests (not published)
+/IMPLEMENTATION.md
+/TESTING.md
+/VALIDATION.md
+/tests/
+/AGENTS.md

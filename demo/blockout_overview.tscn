@@ -1,0 +1,103 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://addons/blockout_tools/blockout_shape.gd" id="1_shape"]
+
+[sub_resource type="Environment" id="Environment_overview"]
+background_mode = 1
+background_color = Color(0.035, 0.045, 0.065, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.35, 0.4, 0.5, 1)
+ambient_light_energy = 0.7
+tonemap_mode = 2
+
+[sub_resource type="BoxMesh" id="Box_floor"]
+size = Vector3(30, 0.1, 30)
+
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+albedo_color = Color(0.08, 0.1, 0.13, 1)
+roughness = 0.8
+
+[sub_resource type="BoxShape3D" id="Shape_floor"]
+size = Vector3(30, 0.1, 30)
+
+[sub_resource type="StyleBoxFlat" id="Style_panel"]
+bg_color = Color(0.03, 0.04, 0.06, 0.82)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
+
+[node name="BlockoutOverview" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_overview")
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-52, -28, 0)
+light_color = Color(1, 0.91, 0.78, 1)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="FillLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-35, 150, 0)
+light_color = Color(0.45, 0.58, 1, 1)
+light_energy = 0.45
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.866025, -0.270598, 0.422618, 0, 0.842, 0.539, -0.5, -0.466, 0.731, 0, 7.5, 13.5)
+current = true
+fov = 48.0
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("Box_floor")
+material_override = SubResource("Mat_floor")
+position = Vector3(0, -1.05, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("Shape_floor")
+position = Vector3(0, -1.05, 0)
+
+[node name="Box" type="Node3D" parent="."]
+position = Vector3(-4, 0, 0)
+
+[node name="BlockoutBox" type="Node3D" parent="Box"]
+script = ExtResource("1_shape")
+box_size = Vector3(2.6, 2.0, 2.6)
+
+[node name="Ramp" type="Node3D" parent="."]
+position = Vector3(0, 0, 0)
+
+[node name="BlockoutRamp" type="Node3D" parent="Ramp"]
+script = ExtResource("1_shape")
+shape_type = 7
+ramp_width = 3.0
+ramp_depth = 4.0
+ramp_height = 2.0
+
+[node name="Sphere" type="Node3D" parent="."]
+position = Vector3(4, 0, 0)
+
+[node name="BlockoutSphere" type="Node3D" parent="Sphere"]
+script = ExtResource("1_shape")
+shape_type = 9
+sphere_radius = 1.4
+
+[node name="LabelLayer" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="PanelContainer" parent="LabelLayer"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 430.0
+offset_bottom = 115.0
+theme_override_styles/panel = SubResource("Style_panel")
+
+[node name="Label" type="Label" parent="LabelLayer/Panel"]
+text = "Godot 3D Blockout Tools\n15 procedural shapes • Select a node and edit in the Inspector"
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 16

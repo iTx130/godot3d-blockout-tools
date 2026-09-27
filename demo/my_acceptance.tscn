@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://do0057b5u84eo"]
+
+[ext_resource type="Script" uid="uid://c7yrghha2psyv" path="res://addons/blockout_tools/blockout_shape.gd" id="1_y3ty0"]
+
+[node name="Node3D" type="Node3D" unique_id=255300545]
+
+[node name="BlockoutBox" type="Node3D" parent="." unique_id=1515692359]
+script = ExtResource("1_y3ty0")
+_grid_override = 1
+_top_color_override = 1
+use_grid = true
+roughness = 0.8
+use_top_color = true

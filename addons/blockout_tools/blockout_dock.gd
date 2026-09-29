@@ -53,9 +53,8 @@ func _ready() -> void:
 	var separator := HSeparator.new()
 	add_child(separator)
 	var default_box_size_label := Label.new()
-	default_box_size_label.text = "Box Size"
+	default_box_size_label.text = "Default Box Size"
 	default_box_size_label.tooltip_text = "Default size for newly created Box shapes, in metres."
-	default_box_size_label.add_theme_font_size_override("font_size", 16)
 	add_child(default_box_size_label)
 	var default_box_size := DEFAULTS.get_default_box_size()
 	var input_panel := PanelContainer.new()
@@ -82,7 +81,6 @@ func _ready() -> void:
 		axis_label.text = BOX_SIZE_AXIS_LABELS[axis]
 		axis_label.custom_minimum_size.x = 16.0
 		axis_label.add_theme_color_override("font_color", BOX_SIZE_AXIS_COLORS[axis])
-		axis_label.add_theme_font_size_override("font_size", 16)
 		axis_group.add_child(axis_label)
 		var input := LineEdit.new()
 		input.flat = true
@@ -91,7 +89,6 @@ func _ready() -> void:
 		input.select_all_on_focus = true
 		input.text = _format_box_size(default_box_size[axis])
 		input.tooltip_text = "%s axis, metres" % BOX_SIZE_AXIS_LABELS[axis].to_upper()
-		input.add_theme_font_size_override("font_size", 16)
 		input.add_theme_constant_override("minimum_character_width", 2)
 		input.text_submitted.connect(_on_default_box_size_submitted.bind(axis))
 		input.focus_exited.connect(_on_default_box_size_focus_exited.bind(input, axis))

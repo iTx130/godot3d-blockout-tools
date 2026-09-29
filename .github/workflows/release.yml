@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Package addon
         id: package
@@ -26,6 +28,33 @@ jobs:
           git archive --format=zip --output="${archive}" HEAD addons/blockout_tools
           echo "archive=${archive}" >> "${GITHUB_OUTPUT}"
 
+      - name: Generate bilingual release notes
+        id: notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          previous_tag="$(git tag --list 'v*' --sort=-version:refname | grep -Fxv "${GITHUB_REF_NAME}" | head -n 1 || true)"
+          request=(api --method POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes")
+          request+=(-f "tag_name=${GITHUB_REF_NAME}")
+          request+=(-f "target_commitish=${GITHUB_SHA}")
+          if [[ -n "${previous_tag}" ]]; then
+            request+=(-f "previous_tag_name=${previous_tag}")
+          fi
+          generated="$(gh "${request[@]}")"
+          title="$(jq -r '.name' <<< "${generated}")"
+          body="$(jq -r '.body' <<< "${generated}")"
+          notes="${RUNNER_TEMP}/release-notes.md"
+          {
+            printf '%s\n\n' '## English'
+            printf '%s\n\n' "${body}"
+            printf '%s\n\n' '## 中文'
+            printf '%s\n' '本版本说明根据上一个 tag 到当前 tag 之间推送的提交和 PR 自动生成，详细变更列表与上方 English 部分一致。'
+          } > "${notes}"
+          echo "title=${title}" >> "${GITHUB_OUTPUT}"
+          echo "notes=${notes}" >> "${GITHUB_OUTPUT}"
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -35,5 +64,5 @@ jobs:
             "${{ steps.package.outputs.archive }}" \
             --repo "${GITHUB_REPOSITORY}" \
             --verify-tag \
-            --title "${GITHUB_REF_NAME}" \
-            --generate-notes
+            --title "${{ steps.notes.outputs.title }}" \
+            --notes-file "${{ steps.notes.outputs.notes }}"

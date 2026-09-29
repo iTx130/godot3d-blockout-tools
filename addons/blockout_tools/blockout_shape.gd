@@ -4,9 +4,9 @@ extends Node3D
 ## Parameters use metres and Godot local axes: X width, Y height, Z depth.
 ## Positive depth extends toward -Z; signed endpoints use Godot XYZ directly.
 ## Generated children are transient; scenes save the parameters, not duplicated geometry.
-const Builder = preload("res://addons/blockout_tools/blockout_mesh.gd")
-const Generator = preload("res://addons/blockout_tools/shape_generator.gd")
-const GRID_SHADER = preload("res://addons/blockout_tools/blockout_grid.gdshader")
+const Builder = preload("blockout_mesh.gd")
+const Generator = preload("shape_generator.gd")
+const GRID_SHADER = preload("blockout_grid.gdshader")
 const NAMES = ["Box", "Cone", "Corner Curved", "Corner Ramp", "Cylinder", "Doorway", "Railing", "Ramp", "Skewbox", "Sphere", "Stairs Curved", "Stairs Linear", "Stairs Linear Manual", "Tube", "Window"]
 enum ShapeType {BOX, CONE, CORNER_CURVED, CORNER_RAMP, CYLINDER, DOORWAY, RAILING, RAMP, SKEWBOX, SPHERE, STAIRS_CURVED, STAIRS_LINEAR, STAIRS_LINEAR_MANUAL, TUBE, WINDOW}
 

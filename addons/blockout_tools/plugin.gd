@@ -1,10 +1,10 @@
 @tool
 extends EditorPlugin
 
-const SHAPE_SCRIPT := preload("res://addons/blockout_tools/blockout_shape.gd")
-const DOCK_SCRIPT := preload("res://addons/blockout_tools/blockout_dock.gd")
-const GIZMO_SCRIPT := preload("res://addons/blockout_tools/blockout_gizmo.gd")
-const DEFAULTS := preload("res://addons/blockout_tools/blockout_defaults.gd")
+const SHAPE_SCRIPT := preload("blockout_shape.gd")
+const DOCK_SCRIPT := preload("blockout_dock.gd")
+const GIZMO_SCRIPT := preload("blockout_gizmo.gd")
+const DEFAULTS := preload("blockout_defaults.gd")
 
 var dock: Control
 var shape_icon: Texture2D

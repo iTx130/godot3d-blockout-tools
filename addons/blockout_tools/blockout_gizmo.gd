@@ -2,7 +2,7 @@
 extends EditorNode3DGizmoPlugin
 
 var history: EditorUndoRedoManager
-const Shape = preload("res://addons/blockout_tools/blockout_shape.gd")
+const Shape = preload("blockout_shape.gd")
 const MIN_SIZE := 0.01
 const WINDOW_OPENING_HANDLES := 3
 
@@ -17,8 +17,8 @@ func _has_gizmo(node: Node3D) -> bool:
 	# their handles become available again without recreating the nodes.
 	if node is Shape:
 		return true
-	var script := node.get_script()
-	return script != null and script.resource_path == "res://addons/blockout_tools/blockout_shape.gd"
+	var script: Script = node.get_script()
+	return script != null and script.resource_path == (Shape as Script).resource_path
 
 func _get_gizmo_name() -> String:
 	return "BlockoutShape"

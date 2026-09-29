@@ -2,7 +2,7 @@
 extends RefCounted
 ## Parametric solids generated directly in Godot local XYZ, measured in metres.
 
-const Builder = preload("res://addons/blockout_tools/blockout_mesh.gd")
+const Builder = preload("blockout_mesh.gd")
 const HEX_FACES = [[0,1,2,3],[4,7,6,5],[0,4,5,1],[3,2,6,7],[0,3,7,4],[1,5,6,2]]
 
 static func _q(value: float, rounded: bool) -> float:

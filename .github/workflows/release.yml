@@ -1,0 +1,39 @@
+name: Release addon
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Package addon
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="blockout_tools-${GITHUB_REF_NAME}.zip"
+          git archive --format=zip --output="${archive}" HEAD addons/blockout_tools
+          echo "archive=${archive}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            "${{ steps.package.outputs.archive }}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes

@@ -1,11 +1,14 @@
 @tool
 extends VBoxContainer
 
+const DEFAULTS := preload("blockout_defaults.gd")
+
 var plugin: EditorPlugin
 var shape_option: OptionButton
 var add_button: Button
 var rebuild_button: Button
 var info: Label
+var default_box_size_inputs: Array[SpinBox] = []
 
 ## Keep these labels explicitly in English. The numeric order is the public
 ## ShapeType order used by BlockoutShape and the generator.
@@ -45,9 +48,39 @@ func _ready() -> void:
 	info.text = "Godot-native: 15 procedural shapes"
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(info)
+	var separator := HSeparator.new()
+	add_child(separator)
+	var default_box_size_label := Label.new()
+	default_box_size_label.text = "Default Box Size"
+	add_child(default_box_size_label)
+	var default_box_size := DEFAULTS.get_default_box_size()
+	var axis_labels := ["X / Width", "Y / Height", "Z / Depth"]
+	for axis in 3:
+		var row := HBoxContainer.new()
+		var axis_label := Label.new()
+		axis_label.text = axis_labels[axis]
+		axis_label.custom_minimum_size.x = 72.0
+		row.add_child(axis_label)
+		var input := SpinBox.new()
+		input.min_value = 0.01
+		input.max_value = 100.0
+		input.step = 0.01
+		input.allow_greater = true
+		input.suffix = " m"
+		input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		input.value = default_box_size[axis]
+		input.value_changed.connect(_on_default_box_size_changed.bind(axis))
+		default_box_size_inputs.append(input)
+		row.add_child(input)
+		add_child(row)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(spacer)
+
+func _on_default_box_size_changed(value: float, axis: int) -> void:
+	var default_box_size := DEFAULTS.get_default_box_size()
+	default_box_size[axis] = value
+	DEFAULTS.set_default_box_size(default_box_size)
 
 func _on_add_pressed() -> void:
 	if plugin:

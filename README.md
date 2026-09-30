@@ -16,6 +16,16 @@
 
 打开 `project.godot` 并按 **F5** 运行 15 种形状展示场景。鼠标右键拖拽旋转视角，滚轮缩放，Tab / Shift+Tab 切换选中形状，R 返回总览。`demo/my_acceptance.tscn` 为手动测试场景。
 
+## Player 视角
+
+停靠面板的 **Gameplay Nodes** 下拉框中选择 **Player**，点击 **Add Gameplay Node**，即可将独立的 `addons/blockout_tools/nodes/player.tscn` 场景实例添加到当前场景根节点，支持撤销/重做。Spawn Point 和 End Point 暂为禁用的占位选项。
+
+Player 原点位于脚底，相机高度默认为 1.6 m。在 Player 检查器中可调整 **Perspective**（初始第一/第三人称）和 **View Height**（相机支点距脚底的高度，单位米）。运行时按 **Tab** 切换人称，保持当前朝向；第三人称显示胶囊角色，镜头位于身后 3 m，并通过弹簧臂避开墙体。
+
+添加后在编辑器中将 Player 移到地面上，再按 **F6** 运行当前场景：W/S 前进后退，A/D 左右平移，空格跳跃，鼠标控制视角。Esc 释放鼠标，鼠标左键重新捕获；窗口失去焦点时也会释放鼠标。按键直接读取物理键位，不需要配置 Input Map。场景和控制脚本都随插件安装。
+
+BodyMesh 在编辑器中默认可见，便于摆放；运行时第一人称隐藏它，第三人称显示。鼠标已捕获时按 **Alt** 开启/关闭无碰撞飞行：W/S 沿视角方向飞行，A/D 横移，空格上升，Ctrl 下降。飞行时无重力，可以穿过墙体和地面，两种人称均可使用；退出后恢复原有碰撞层/掩码、镜头避墙和重力。Esc 或窗口失去焦点会暂停飞行移动。
+
 ## 形状与编辑
 
 Box、Cone、Corner Curved、Corner Ramp、Cylinder、Doorway、Railing、Ramp、Skewbox、Sphere、Stairs Curved、Stairs Linear、Stairs Linear Manual、Tube 和 Window。

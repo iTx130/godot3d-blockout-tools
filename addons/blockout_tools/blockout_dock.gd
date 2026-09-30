@@ -9,6 +9,8 @@ var add_button: Button
 var rebuild_button: Button
 var info: Label
 var default_box_size_inputs: Array[LineEdit] = []
+var node_option: OptionButton
+var add_node_button: Button
 
 ## Keep these labels explicitly in English. The numeric order is the public
 ## ShapeType order used by BlockoutShape and the generator.
@@ -92,6 +94,25 @@ func _ready() -> void:
 		default_box_size_inputs.append(input)
 		axis_group.add_child(input)
 		axis_row.add_child(axis_group)
+	add_child(HSeparator.new())
+	var node_label := Label.new()
+	node_label.text = "Gameplay Nodes"
+	add_child(node_label)
+	node_option = OptionButton.new()
+	node_option.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	node_option.get_popup().auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	for node_index in 3:
+		node_option.add_item(["Player", "Spawn Point", "End Point"][node_index], node_index)
+		node_option.set_item_auto_translate_mode(node_index, Node.AUTO_TRANSLATE_MODE_DISABLED)
+		if node_index > 0:
+			node_option.set_item_disabled(node_index, true)
+			node_option.get_popup().set_item_tooltip(node_index, "Coming soon")
+	add_child(node_option)
+	add_node_button = Button.new()
+	add_node_button.text = "Add Gameplay Node"
+	add_node_button.tooltip_text = "Add a Player scene with first-/third-person views to the current scene root."
+	add_node_button.pressed.connect(_on_add_node_pressed)
+	add_child(add_node_button)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(spacer)
@@ -120,6 +141,10 @@ func _on_default_box_size_focus_exited(input: LineEdit, axis: int) -> void:
 func _on_add_pressed() -> void:
 	if plugin:
 		plugin.create_shape(shape_option.selected)
+
+func _on_add_node_pressed() -> void:
+	if plugin and node_option.selected == 0:
+		plugin.create_player()
 
 func _on_rebuild_pressed() -> void:
 	var selected: Node = plugin.get_selected_blockout() if plugin else null

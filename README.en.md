@@ -16,6 +16,16 @@ The development and acceptance target is **Godot 4.7.2**. Other versions have no
 
 Open `project.godot` and press **F5** for the 15-shape gallery. Right mouse drag orbits, the wheel zooms, Tab / Shift+Tab selects a shape, and R returns to the overview. `demo/my_acceptance.tscn` provides the existing manual test scene.
 
+## Player perspectives
+
+Select **Player** under **Gameplay Nodes** in the dock and click **Add Gameplay Node** to instance the standalone `addons/blockout_tools/nodes/player.tscn` under the current scene root, with undo/redo support. Spawn Point and End Point are disabled placeholders.
+
+The Player origin is at its feet, with a default camera height of 1.6 m. Adjust **Perspective** (initial first/third person) and **View Height** (camera pivot height above the feet, in metres) in the Player Inspector. Press **Tab** at runtime to switch perspectives without changing the viewing direction. Third person shows a capsule body and places the camera 3 m behind it, with a spring arm that retracts near walls.
+
+Move the Player onto the floor in the editor, then press **F6** to run the current scene: W/S moves forward/backward, A/D strafes, Space jumps, and the mouse turns the view. Esc releases the mouse; left click captures it again. Losing window focus also releases the mouse. Physical keys are read directly, so no Input Map setup is required. Both the scene and controller ship with the addon.
+
+BodyMesh is visible by default in the editor for placement; at runtime it is hidden in first person and shown in third person. With the mouse captured, press **Alt** to toggle noclip flight: W/S flies along the viewing direction, A/D strafes, Space ascends, and Ctrl descends. Flight ignores gravity, walls and floors in either perspective. Turning it off restores the original collision layers/masks, camera obstruction checks and gravity. Esc or loss of window focus pauses flight movement.
+
 ## Shapes and editing
 
 Box, Cone, Corner Curved, Corner Ramp, Cylinder, Doorway, Railing, Ramp, Skewbox, Sphere, Stairs Curved, Stairs Linear, Stairs Linear Manual, Tube and Window.

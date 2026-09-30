@@ -5,6 +5,7 @@ const SHAPE_SCRIPT := preload("blockout_shape.gd")
 const DOCK_SCRIPT := preload("blockout_dock.gd")
 const GIZMO_SCRIPT := preload("blockout_gizmo.gd")
 const DEFAULTS := preload("blockout_defaults.gd")
+const PLAYER_SCENE := preload("nodes/player.tscn")
 
 var dock: Control
 var shape_icon: Texture2D
@@ -46,6 +47,23 @@ func create_shape(shape_type: int) -> void:
 	get_editor_interface().get_selection().clear()
 	get_editor_interface().get_selection().add_node(node)
 	get_editor_interface().edit_node(node)
+
+func create_player() -> void:
+	var parent: Node = get_editor_interface().get_edited_scene_root()
+	if parent == null:
+		push_warning("Open a scene before adding a Player.")
+		return
+	var player := PLAYER_SCENE.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
+	var history := get_undo_redo()
+	history.create_action("Add Player", UndoRedo.MERGE_DISABLE, parent)
+	history.add_do_method(parent, "add_child", player, true)
+	history.add_do_method(player, "set_owner", parent)
+	history.add_undo_method(parent, "remove_child", player)
+	history.add_do_reference(player)
+	history.commit_action()
+	get_editor_interface().get_selection().clear()
+	get_editor_interface().get_selection().add_node(player)
+	get_editor_interface().edit_node(player)
 
 func get_selected_blockout() -> Node:
 	var selected: Array[Node] = get_editor_interface().get_selection().get_selected_nodes()

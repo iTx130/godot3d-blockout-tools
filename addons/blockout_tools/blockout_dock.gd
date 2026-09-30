@@ -7,7 +7,6 @@ var plugin: EditorPlugin
 var shape_option: OptionButton
 var add_button: Button
 var rebuild_button: Button
-var info: Label
 var default_box_size_inputs: Array[LineEdit] = []
 var node_option: OptionButton
 var add_node_button: Button
@@ -45,10 +44,6 @@ func _ready() -> void:
 	rebuild_button.tooltip_text = "Regenerate mesh and collision from current parameters."
 	rebuild_button.pressed.connect(_on_rebuild_pressed)
 	add_child(rebuild_button)
-	info = Label.new()
-	info.text = "Godot-native: 15 procedural shapes"
-	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(info)
 	var separator := HSeparator.new()
 	add_child(separator)
 	var default_box_size_label := Label.new()

@@ -22,10 +22,6 @@ const BOX_SIZE_AXIS_COLORS := [Color("c65a68"), Color("82a94b"), Color("517cad")
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(235, 0)
-	var title := Label.new()
-	title.text = "Blockout Tools"
-	title.add_theme_font_size_override("font_size", 18)
-	add_child(title)
 	var hint := Label.new()
 	hint.text = "Create a shape, then edit its parameters in the Inspector."
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -43,7 +39,8 @@ func _ready() -> void:
 	add_button.pressed.connect(_on_add_pressed)
 	add_child(add_button)
 	rebuild_button = Button.new()
-	rebuild_button.text = "Rebuild Selected"
+	rebuild_button.text = "Refresh Selected"
+	rebuild_button.tooltip_text = "Regenerate mesh and collision from current parameters."
 	rebuild_button.pressed.connect(_on_rebuild_pressed)
 	add_child(rebuild_button)
 	info = Label.new()

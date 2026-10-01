@@ -5,6 +5,16 @@ var history: EditorUndoRedoManager
 const Shape = preload("blockout_shape.gd")
 const MIN_SIZE := 0.01
 const WINDOW_OPENING_HANDLES := 3
+const ROUNDED_PROPERTIES: Array[String] = [
+	"box_size", "cone_radius", "cone_height", "cylinder_radius", "cylinder_height",
+	"corner_curved_radius", "corner_curved_height", "ramp_width", "ramp_depth", "ramp_height",
+	"doorway_width", "doorway_height", "doorway_depth", "side_thickness", "top_thickness", "bottom_thickness",
+	"railing_section_length", "railing_skew_elevation", "skewbox_endpoint", "skewbox_start_size", "skewbox_end_size",
+	"sphere_radius", "stairs_size", "step_width", "step_depth", "step_height",
+	"step_depth_spacing", "step_height_spacing", "stairs_inner_radius", "stairs_height",
+	"tube_radius", "tube_thickness", "tube_height",
+]
+
 
 func _init() -> void:
 	create_material("outline", Color(1.0, 0.65, 0.18, 0.6))
@@ -118,13 +128,28 @@ func _get_handle_name(gizmo: EditorNode3DGizmo, id: int, _secondary: bool) -> St
 	var sign_prefix := "-" if _handle_axis(gizmo.get_node_3d(), id)[entry[1]] < 0 else ""
 	return str(entry[0]) + " [Godot " + sign_prefix + ["X","Y","Z"][entry[1]] + "]"
 
-func _get_handle_value(gizmo: EditorNode3DGizmo, id: int, _secondary: bool) -> Variant:
-	var node := gizmo.get_node_3d()
-	if node.shape_type == Shape.ShapeType.BOX:
-		return {"box_size": node.box_size, "round_size": node.round_size}
-	if _is_window_opening_handle(node, id) and id == 7:
-		return {"top_thickness": node.top_thickness, "bottom_thickness": node.bottom_thickness}
-	return node.get(_handles(node)[id][0])
+func _get_handle_value(gizmo: EditorNode3DGizmo, _id: int, _secondary: bool) -> Variant:
+	return _geometry_snapshot(gizmo.get_node_3d())
+
+static func _rounded_properties(node: Node) -> Array[String]:
+	var properties: Array[String] = []
+	for property: String in ROUNDED_PROPERTIES:
+		if node.shape_type in Shape.PROPERTY_SHAPES[property]:
+			properties.append(property)
+	return properties
+
+static func _geometry_snapshot(node: Node) -> Dictionary:
+	var result := {"round_size": node.round_size}
+	for property in _rounded_properties(node):
+		result[property] = node.get(property)
+	return result
+
+static func _rounded_value(value: Variant) -> Variant:
+	if value is Vector3:
+		return (value * 100.0 + Vector3.ONE * 0.5).floor() / 100.0
+	if value is Vector2:
+		return (value * 100.0 + Vector2.ONE * 0.5).floor() / 100.0
+	return floorf(float(value) * 100.0 + 0.5) / 100.0
 
 func _set_handle(gizmo: EditorNode3DGizmo, id: int, _secondary: bool, camera: Camera3D, screen_pos: Vector2) -> void:
 	var node := gizmo.get_node_3d()
@@ -138,16 +163,19 @@ func _set_handle(gizmo: EditorNode3DGizmo, id: int, _secondary: bool, camera: Ca
 	var handle_position := _handle_position(node, id)
 	var axis_origin := handle_position - axis * handle_position.dot(axis)
 	var closest := Geometry3D.get_closest_points_between_segments(axis_origin-axis*1000,axis_origin+axis*1000,origin,end)
-	var size: float = closest[0].dot(axis)
-	if node.shape_type == Shape.ShapeType.BOX:
-		var step: float = _editor_grid_snap_step() * node.grid_snap_ratio
-		if step > 0.0:
-			var grid_transform := _box_grid_transform(node, EditorInterface.get_edited_scene_root())
-			_apply_box_grid_size(node, id, _snap_box_extent(grid_transform, id, size, step))
-			return
+	var coordinate: float = closest[0].dot(axis)
+	var step: float = _editor_grid_snap_step() * node.grid_snap_ratio
+	if step > 0.0:
+		var grid_transform := _box_grid_transform(node, EditorInterface.get_edited_scene_root())
+		coordinate = _snap_handle_coordinate(node, id, coordinate, grid_transform, step)
+		_apply_grid_handle_size(node, id, _coordinate_to_size(node, id, coordinate))
+		return
+	_apply_handle_size(node, id, _coordinate_to_size(node, id, coordinate))
+
+static func _coordinate_to_size(node: Node, id: int, coordinate: float) -> float:
 	if node.shape_type == Shape.ShapeType.STAIRS_CURVED and _handles(node)[id][0] == "step_width":
-		size -= _dimension(node, "stairs_inner_radius")
-	_apply_handle_size(node, id, size)
+		return coordinate - _dimension(node, "stairs_inner_radius")
+	return coordinate
 
 func _editor_grid_snap_step() -> float:
 	# These editor APIs include Ctrl's temporary toggle and Shift's fine step.
@@ -162,48 +190,100 @@ static func _box_grid_transform(node: Node3D, scene_root: Node) -> Transform3D:
 	# A plain Node scene root has no spatial transform: its grid is world space.
 	return node.global_transform
 
-static func _snap_box_extent(grid_transform: Transform3D, id: int, size: float, step: float) -> float:
-	if step <= 0.0 or not is_finite(step):
-		return size
-	var direction := Vector3.ZERO
-	direction[id] = -1.0 if id == 2 else 1.0
+static func _grid_handle_limits(node: Node, id: int) -> Vector2:
+	if _is_window_opening_handle(node, id):
+		var width := _dimension(node, "doorway_width")
+		var height := _dimension(node, "doorway_height")
+		var top := _dimension(node, "top_thickness")
+		var bottom := _dimension(node, "bottom_thickness")
+		var side_limit := minf((width - MIN_SIZE) / 2.0, width * 0.49)
+		match id:
+			3: return Vector2(MIN_SIZE, side_limit)
+			4: return Vector2(width - side_limit, width - MIN_SIZE)
+			5: return Vector2(maxf(bottom + MIN_SIZE, height * 0.01), height - MIN_SIZE)
+			6: return Vector2(MIN_SIZE, height - top - MIN_SIZE)
+			7:
+				var opening := height - top - bottom
+				return Vector2(opening / 2.0 + maxf(MIN_SIZE, height * 0.01 - opening), height - opening / 2.0 - MIN_SIZE)
+	var property: String = _handles(node)[id][0]
+	if property in ["skewbox_endpoint", "railing_skew_elevation"]:
+		return Vector2(-INF, INF)
+	if node.shape_type == Shape.ShapeType.STAIRS_CURVED and property == "step_width":
+		return Vector2(_dimension(node, "stairs_inner_radius") + MIN_SIZE, INF)
+	return Vector2(MIN_SIZE, INF)
+
+static func _snap_axis_coordinate(grid_transform: Transform3D, axis_origin: Vector3, direction: Vector3, coordinate: float, step: float, limits: Vector2) -> float:
+	if step <= 0.0 or not is_finite(step) or limits.x > limits.y:
+		return coordinate
 	var movement := grid_transform.basis * direction
-	# Keep the handle on its resizing axis. Rotated handles intersect the grid
-	# planes normal to their largest movement component, rather than moving off-axis.
 	var component := movement.abs().max_axis_index()
 	var speed := movement[component]
 	if absf(speed) < 0.000000001:
-		return size
-	var origin := grid_transform.origin[component]
-	var coordinate := origin + speed * maxf(size, MIN_SIZE)
-	var extent := (snappedf(coordinate, step) - origin) / speed
-	if extent < MIN_SIZE:
-		# Choose the first valid grid plane beyond the fixed base corner.
-		var limit := (origin + speed * MIN_SIZE) / step
-		var plane := ceilf(limit) if speed > 0.0 else floorf(limit)
-		extent = (plane * step - origin) / speed
-	return maxf(extent, MIN_SIZE)
+		return coordinate
+	var origin: float = (grid_transform * axis_origin)[component]
+	var first_coordinate := origin + speed * limits.x
+	var last_coordinate := origin + speed * limits.y
+	var lower := minf(first_coordinate, last_coordinate)
+	var upper := maxf(first_coordinate, last_coordinate)
+	# Epsilon only resolves floating point noise at an existing grid plane.
+	var first_plane := ceilf(lower / step - 0.000001) * step if is_finite(lower) else -INF
+	var last_plane := floorf(upper / step + 0.000001) * step if is_finite(upper) else INF
+	if first_plane > last_plane:
+		# A narrow opening may contain no legal grid plane: keep its constraints.
+		return clampf(coordinate, limits.x, limits.y)
+	var plane := snappedf(origin + speed * clampf(coordinate, limits.x, limits.y), step)
+	plane = clampf(plane, first_plane, last_plane)
+	return clampf((plane - origin) / speed, limits.x, limits.y)
 
-static func _apply_box_grid_size(node: Node3D, id: int, size: float) -> void:
-	var dimensions: Vector3 = node.box_size
-	if node.round_size and absf(size - floorf(size * 100.0 + 0.5) / 100.0) > 0.000001:
-		# Preserve the stationary visible dimensions before allowing exact contact
-		# between centimetres. Round Size is captured in the same undo action.
-		dimensions = (dimensions * 100.0 + Vector3.ONE * 0.5).floor() / 100.0
-		dimensions = dimensions.max(Vector3.ONE * 0.001)
+static func _snap_handle_coordinate(node: Node, id: int, coordinate: float, grid_transform: Transform3D, step: float) -> float:
+	var axis := _handle_axis(node, id)
+	var point := _handle_position(node, id)
+	var axis_origin := point - axis * point.dot(axis)
+	return _snap_axis_coordinate(grid_transform, axis_origin, axis, coordinate, step, _grid_handle_limits(node, id))
+
+static func _snap_box_extent(grid_transform: Transform3D, id: int, size: float, step: float) -> float:
+	var direction := Vector3.ZERO
+	direction[id] = -1.0 if id == 2 else 1.0
+	return _snap_axis_coordinate(grid_transform, Vector3.ZERO, direction, size, step, Vector2(MIN_SIZE, INF))
+
+static func _apply_grid_handle_size(node: Node, id: int, size: float) -> void:
+	var values := _handle_changes(node, id, size, false)
+	if values.is_empty():
+		return
+	var precise := false
+	for value in values.values():
+		var rounded: Variant = _rounded_value(value)
+		if value is Vector3 or value is Vector2:
+			precise = precise or value.distance_to(rounded) > 0.000001
+		else:
+			precise = precise or absf(float(value) - float(rounded)) > 0.000001
+	if node.round_size and precise:
+		# All dimensions currently rounded by the generator must keep their
+		# visible values when exact snapping disables centimetre rounding.
+		for property in _rounded_properties(node):
+			node.set(property, _rounded_value(node.get(property)))
 		node.round_size = false
 	elif node.round_size:
-		size = floorf(size * 100.0 + 0.5) / 100.0
-	dimensions[id] = size
-	node.box_size = dimensions
+		# A centimetre-aligned edit leaves untouched raw vector components intact.
+		var entry: Array = _handles(node)[id]
+		var property: String = entry[0]
+		if values.has(property) and values[property] is Vector3:
+			var vector: Vector3 = node.get(property)
+			vector[entry[1]] = values[property][entry[1]]
+			values[property] = vector
+	for property in values:
+		node.set(property, values[property])
 
-static func _bounded_size(node: Node, value: float, maximum: float) -> float:
-	if node.round_size:
+static func _apply_box_grid_size(node: Node3D, id: int, size: float) -> void:
+	_apply_grid_handle_size(node, id, size)
+
+static func _bounded_size(node: Node, value: float, maximum: float, rounded: bool = true) -> float:
+	if rounded and node.round_size:
 		value = floorf(value * 100 + 0.5) / 100
 		maximum = floorf(maximum * 100 + 0.00001) / 100
 	return clampf(value, MIN_SIZE, maxf(MIN_SIZE, maximum))
 
-static func _apply_handle_size(node: Node, id: int, size: float) -> void:
+static func _handle_changes(node: Node, id: int, size: float, rounded: bool = true) -> Dictionary:
 	if _is_window_opening_handle(node, id):
 		var width := _dimension(node, "doorway_width")
 		var height := _dimension(node, "doorway_height")
@@ -212,31 +292,37 @@ static func _apply_handle_size(node: Node, id: int, size: float) -> void:
 		match id:
 			3, 4:
 				if width >= MIN_SIZE * 3:
-					node.side_thickness = _bounded_size(node, size if id == 3 else width - size, (width - MIN_SIZE) / 2)
+					return {"side_thickness": _bounded_size(node, size if id == 3 else width - size, (width - MIN_SIZE) / 2, rounded)}
 			5:
 				if height - bottom >= MIN_SIZE * 2:
-					node.top_thickness = _bounded_size(node, height - size, height - bottom - MIN_SIZE)
+					return {"top_thickness": _bounded_size(node, height - size, height - bottom - MIN_SIZE, rounded)}
 			6:
 				if height - top >= MIN_SIZE * 2:
-					node.bottom_thickness = _bounded_size(node, size, height - top - MIN_SIZE)
+					return {"bottom_thickness": _bounded_size(node, size, height - top - MIN_SIZE, rounded)}
 			7:
 				var opening_height := height - top - bottom
 				if opening_height >= MIN_SIZE and top + bottom >= MIN_SIZE * 2:
-					var new_bottom := _bounded_size(node, size - opening_height / 2, top + bottom - MIN_SIZE)
-					node.bottom_thickness = new_bottom
-					node.top_thickness = top + bottom - new_bottom
-		return
+					var new_bottom := _bounded_size(node, size - opening_height / 2, top + bottom - MIN_SIZE, rounded)
+					return {"bottom_thickness": new_bottom, "top_thickness": top + bottom - new_bottom}
+		return {}
 	var entry: Array = _handles(node)[id]
-	if entry[0] not in ["skewbox_endpoint","railing_skew_elevation"]:
-		size = maxf(size,0.01)
-	if node.round_size:
-		size = floorf(size*100+0.5)/100
+	if entry[0] not in ["skewbox_endpoint", "railing_skew_elevation"]:
+		size = maxf(size, MIN_SIZE)
+	if rounded and node.round_size:
+		size = floorf(size * 100 + 0.5) / 100
 	var value: Variant = node.get(entry[0])
 	if value is Vector3:
+		if not rounded and node.round_size:
+			value = _rounded_value(value)
 		value[entry[1]] = size
 	else:
 		value = size
-	node.set(entry[0],value)
+	return {entry[0]: value}
+
+static func _apply_handle_size(node: Node, id: int, size: float) -> void:
+	var values := _handle_changes(node, id, size)
+	for property in values:
+		node.set(property, values[property])
 
 func _commit_handle(gizmo: EditorNode3DGizmo, id: int, _secondary: bool, restore: Variant, cancel: bool) -> void:
 	var node := gizmo.get_node_3d()

@@ -99,13 +99,13 @@ func _ready() -> void:
 	for node_index in 3:
 		node_option.add_item(["Player", "Spawn Point", "End Point"][node_index], node_index)
 		node_option.set_item_auto_translate_mode(node_index, Node.AUTO_TRANSLATE_MODE_DISABLED)
-		if node_index > 0:
+		if node_index == 2:
 			node_option.set_item_disabled(node_index, true)
 			node_option.get_popup().set_item_tooltip(node_index, "Coming soon")
 	add_child(node_option)
 	add_node_button = Button.new()
 	add_node_button.text = "Add Gameplay Node"
-	add_node_button.tooltip_text = "Add a Player scene with first-/third-person views to the current scene root."
+	add_node_button.tooltip_text = "Add a Player or Spawn Point scene to the current scene root."
 	add_node_button.pressed.connect(_on_add_node_pressed)
 	add_child(add_node_button)
 	var spacer := Control.new()
@@ -138,8 +138,10 @@ func _on_add_pressed() -> void:
 		plugin.create_shape(shape_option.selected)
 
 func _on_add_node_pressed() -> void:
-	if plugin and node_option.selected == 0:
-		plugin.create_player()
+	if plugin:
+		match node_option.selected:
+			0: plugin.create_player()
+			1: plugin.create_spawn_point()
 
 func _on_rebuild_pressed() -> void:
 	var selected: Node = plugin.get_selected_blockout() if plugin else null

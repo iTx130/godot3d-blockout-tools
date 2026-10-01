@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/blockout_tools/nodes/spawn_point.gd" id="1_spawn"]
+
+[sub_resource type="CapsuleShape3D" id="Capsule_spawn"]
+radius = 0.5
+height = 2.0
+
+[node name="SpawnPoint" type="Area3D"]
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+script = ExtResource("1_spawn")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 1, 0)
+shape = SubResource("Capsule_spawn")

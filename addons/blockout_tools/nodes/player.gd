@@ -4,6 +4,8 @@ extends CharacterBody3D
 
 enum Perspective { FIRST_PERSON, THIRD_PERSON }
 
+const SPAWN_POINT := preload("spawn_point.gd")
+
 const MOVE_SPEED := 5.0
 const JUMP_SPEED := 4.5
 const MOUSE_SENSITIVITY := 0.003
@@ -39,6 +41,7 @@ var _saved_collision_mask: int
 var _saved_spring_arm_mask: int
 
 func _ready() -> void:
+	_apply_spawn_point()
 	head.position.y = view_height
 	# The camera arm must hit the world, but never the player's own capsule.
 	spring_arm.add_excluded_object(get_rid())
@@ -46,6 +49,21 @@ func _ready() -> void:
 	_apply_perspective()
 	camera.make_current()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _apply_spawn_point() -> void:
+	var scene_root := get_tree().current_scene
+	if scene_root == null or (scene_root != self and not scene_root.is_ancestor_of(self)):
+		scene_root = self
+		while scene_root.get_parent() != get_tree().root:
+			scene_root = scene_root.get_parent()
+	var spawn := SPAWN_POINT.find_enabled(scene_root)
+	if spawn != null:
+		# Spawn scale must not resize the player's capsule or camera rig.
+		var player_scale := global_basis.get_scale()
+		global_transform = spawn.get_spawn_transform()
+		global_basis = global_basis.scaled_local(player_scale)
+		velocity = Vector3.ZERO
+		head.rotation = Vector3.ZERO
 
 func _apply_perspective() -> void:
 	var was_current := camera.is_current()

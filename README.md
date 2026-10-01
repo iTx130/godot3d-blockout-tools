@@ -60,6 +60,10 @@ Tube 是矩形截面的环形墙体。Sections 参数控制墙体分段数；完
 
 形状集合和工作流程参考了 Unreal Engine 5 的 blockout tools。本项目是独立的 Godot 原生实现，不包含其任何代码或资源，与其作者无关联，也未获得其背书。
 
+## 更新日志
+
+按版本查看 [中英文更新日志](docs/changelog.md)。开发中的改动记录在 Unreleased，发布时归入对应 tag。
+
 ## 许可证
 
 [MIT](LICENSE) © 2026 itx130

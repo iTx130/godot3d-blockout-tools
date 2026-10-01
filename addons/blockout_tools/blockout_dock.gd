@@ -2,6 +2,7 @@
 extends VBoxContainer
 
 const DEFAULTS := preload("blockout_defaults.gd")
+const SHAPE := preload("blockout_shape.gd")
 
 var plugin: EditorPlugin
 var shape_option: OptionButton
@@ -32,8 +33,11 @@ func _ready() -> void:
 	shape_option.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	shape_option.get_popup().auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	for shape_index in SHAPES.size():
+		# Keep serialized IDs stable while manual stairs are unavailable for creation.
+		if shape_index == SHAPE.ShapeType.STAIRS_LINEAR_MANUAL:
+			continue
 		shape_option.add_item(SHAPES[shape_index], shape_index)
-		shape_option.set_item_auto_translate_mode(shape_index, Node.AUTO_TRANSLATE_MODE_DISABLED)
+		shape_option.set_item_auto_translate_mode(shape_option.item_count - 1, Node.AUTO_TRANSLATE_MODE_DISABLED)
 	add_child(shape_option)
 	add_button = Button.new()
 	add_button.text = "Add Blockout Shape"
@@ -135,7 +139,7 @@ func _on_default_box_size_focus_exited(input: LineEdit, axis: int) -> void:
 
 func _on_add_pressed() -> void:
 	if plugin:
-		plugin.create_shape(shape_option.selected)
+		plugin.create_shape(shape_option.get_selected_id())
 
 func _on_add_node_pressed() -> void:
 	if plugin:

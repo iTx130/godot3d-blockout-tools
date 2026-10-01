@@ -341,6 +341,14 @@ var last_builder: BlockoutMeshBuilder
 var build_count := 0
 
 func _validate_property(property: Dictionary) -> void:
+	if property.name == "shape_type":
+		var choices := PackedStringArray()
+		for id in NAMES.size():
+			# Legacy manual-stair nodes retain their current value and parameters.
+			if id == ShapeType.STAIRS_LINEAR_MANUAL and shape_type != id:
+				continue
+			choices.append("%s:%d" % [NAMES[id], id])
+		property.hint_string = ",".join(choices)
 	if PROPERTY_SHAPES.has(property.name) and shape_type not in PROPERTY_SHAPES[property.name]:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
 	if property.name == "custom_material" and material_type != 1:

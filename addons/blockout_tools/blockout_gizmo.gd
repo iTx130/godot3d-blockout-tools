@@ -4,7 +4,7 @@ extends EditorNode3DGizmoPlugin
 var history: EditorUndoRedoManager
 const Shape = preload("blockout_shape.gd")
 const MIN_SIZE := 0.01
-const WINDOW_OPENING_HANDLES := 3
+const OPENING_HANDLES := 3
 const ROUNDED_PROPERTIES: Array[String] = [
 	"box_size", "cone_radius", "cone_height", "cylinder_radius", "cylinder_height",
 	"corner_curved_radius", "corner_curved_height", "ramp_width", "ramp_depth", "ramp_height",
@@ -40,7 +40,10 @@ static func _handles(node: Node) -> Array:
 		2: return [["corner_curved_radius",0],["corner_curved_height",1]]
 		3,7: return [["ramp_width",0],["ramp_depth",2],["ramp_height",1]]
 		4: return [["cylinder_radius",0],["cylinder_height",1]]
-		5: return [["doorway_depth",2],["doorway_width",0],["doorway_height",1]]
+		5: return [
+			["doorway_depth",2],["doorway_width",0],["doorway_height",1],
+			["side_thickness",0],["side_thickness",0],["top_thickness",1],
+		]
 		6: return [["railing_section_length",2],["railing_skew_elevation",1]]
 		8: return [["skewbox_endpoint",0],["skewbox_endpoint",1],["skewbox_endpoint",2]]
 		9: return [["sphere_radius",0]]
@@ -59,8 +62,8 @@ static func _dimension(node: Node, property: String) -> float:
 	var value: float = node.get(property)
 	return floorf(value * 100 + 0.5) / 100 if node.round_size else value
 
-static func _is_window_opening_handle(node: Node, id: int) -> bool:
-	return node.shape_type == Shape.ShapeType.WINDOW and id >= WINDOW_OPENING_HANDLES
+static func _is_opening_handle(node: Node, id: int) -> bool:
+	return node.shape_type in [Shape.ShapeType.DOORWAY, Shape.ShapeType.WINDOW] and id >= OPENING_HANDLES
 
 static func _handle_axis(node: Node, id: int) -> Vector3:
 	var entry: Array = _handles(node)[id]
@@ -72,10 +75,10 @@ static func _handle_axis(node: Node, id: int) -> Vector3:
 static func _handle_position(node: Node, id: int) -> Vector3:
 	var entry: Array = _handles(node)[id]
 	var point := Vector3.ZERO
-	if _is_window_opening_handle(node, id):
+	if _is_opening_handle(node, id):
 		var width := _dimension(node, "doorway_width")
 		var ceiling := _dimension(node, "doorway_height") - _dimension(node, "top_thickness")
-		var sill := _dimension(node, "bottom_thickness")
+		var sill := _dimension(node, "bottom_thickness") if node.shape_type == Shape.ShapeType.WINDOW else 0.0
 		point = Vector3(width / 2, (sill + ceiling) / 2, 0)
 		match id:
 			3: point.x = _dimension(node, "side_thickness")
@@ -102,11 +105,11 @@ func _redraw(gizmo: EditorNode3DGizmo) -> void:
 	for id in range(_handles(node).size()):
 		positions.append(_handle_position(node, id))
 	gizmo.add_handles(positions,get_material("handles",gizmo),[])
-	if node.shape_type == Shape.ShapeType.WINDOW:
+	if node.shape_type in [Shape.ShapeType.DOORWAY, Shape.ShapeType.WINDOW]:
 		var left := positions[3].x
 		var right := positions[4].x
 		var top := positions[5].y
-		var bottom := positions[6].y
+		var bottom := positions[6].y if node.shape_type == Shape.ShapeType.WINDOW else 0.0
 		var corners := PackedVector3Array([
 			Vector3(left, bottom, 0), Vector3(left, top, 0),
 			Vector3(right, top, 0), Vector3(right, bottom, 0),
@@ -118,12 +121,14 @@ func _redraw(gizmo: EditorNode3DGizmo) -> void:
 		gizmo.add_lines(lines, get_material("opening_outline", gizmo))
 
 func _get_handle_name(gizmo: EditorNode3DGizmo, id: int, _secondary: bool) -> String:
-	if _is_window_opening_handle(gizmo.get_node_3d(), id):
+	if _is_opening_handle(gizmo.get_node_3d(), id):
+		if gizmo.get_node_3d().shape_type == Shape.ShapeType.DOORWAY:
+			return ["Doorway opening width (left)", "Doorway opening width (right)", "Doorway opening top"][id - OPENING_HANDLES]
 		return [
 			"Window opening width (left)", "Window opening width (right)",
 			"Window opening top", "Window sill height",
 			"Window opening elevation (keep size)",
-		][id - WINDOW_OPENING_HANDLES]
+		][id - OPENING_HANDLES]
 	var entry: Array = _handles(gizmo.get_node_3d())[id]
 	var sign_prefix := "-" if _handle_axis(gizmo.get_node_3d(), id)[entry[1]] < 0 else ""
 	return str(entry[0]) + " [Godot " + sign_prefix + ["X","Y","Z"][entry[1]] + "]"
@@ -191,11 +196,11 @@ static func _box_grid_transform(node: Node3D, scene_root: Node) -> Transform3D:
 	return node.global_transform
 
 static func _grid_handle_limits(node: Node, id: int) -> Vector2:
-	if _is_window_opening_handle(node, id):
+	if _is_opening_handle(node, id):
 		var width := _dimension(node, "doorway_width")
 		var height := _dimension(node, "doorway_height")
 		var top := _dimension(node, "top_thickness")
-		var bottom := _dimension(node, "bottom_thickness")
+		var bottom := _dimension(node, "bottom_thickness") if node.shape_type == Shape.ShapeType.WINDOW else 0.0
 		var side_limit := minf((width - MIN_SIZE) / 2.0, width * 0.49)
 		match id:
 			3: return Vector2(MIN_SIZE, side_limit)
@@ -284,11 +289,11 @@ static func _bounded_size(node: Node, value: float, maximum: float, rounded: boo
 	return clampf(value, MIN_SIZE, maxf(MIN_SIZE, maximum))
 
 static func _handle_changes(node: Node, id: int, size: float, rounded: bool = true) -> Dictionary:
-	if _is_window_opening_handle(node, id):
+	if _is_opening_handle(node, id):
 		var width := _dimension(node, "doorway_width")
 		var height := _dimension(node, "doorway_height")
 		var top := _dimension(node, "top_thickness")
-		var bottom := _dimension(node, "bottom_thickness")
+		var bottom := _dimension(node, "bottom_thickness") if node.shape_type == Shape.ShapeType.WINDOW else 0.0
 		match id:
 			3, 4:
 				if width >= MIN_SIZE * 3:

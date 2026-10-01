@@ -34,12 +34,12 @@ BodyMesh 在编辑器中默认可见，便于摆放；运行时第一人称隐�
 
 ## 形状与编辑
 
-Box、Cone、Corner Curved、Corner Ramp、Cylinder、Doorway、Railing、Ramp、Skewbox、Sphere、Stairs Curved、Stairs Linear、Stairs Linear Manual、Tube 和 Window。
+Box、Cone、Corner Curved、Corner Ramp、Cylinder、Doorway、Railing、Ramp、Skewbox、Sphere、Stairs Curved、Stairs Linear、Tube 和 Window。Stairs Linear Manual 暂时从创建列表和检查器形状选项中隐藏，已有节点保持兼容。
 
 - 尺寸单位为米，使用 Godot 本地坐标轴：X 为宽度，Y 为高度，深度朝向 −Z。
 - 启用 Round Size 时尺寸吸附到 0.01 m；关闭后可输入更精细的数值。
-- 全部 15 种形状的手柄沿用编辑器的“使用吸附”开关，默认步长为编辑器位移吸附步长的十分之一。在检查器 **Geometry → Grid Snap Ratio**（默认 0.1）中调整比例，每个形状分别保存。Ctrl 临时切换吸附，Shift 将当前步长再缩小十倍。网格以当前编辑场景的根节点为基准，普通 Node 根节点使用世界坐标。旋转后的手柄沿移动分量最大的坐标轴对齐网格平面。精确对齐需要非整厘米尺寸时，会保留其他部分的可见尺寸并关闭 Round Size，所有参数变化可一起撤销／重做。Window 开口保留墙厚和开口范围，范围内没有网格点时优先满足这些约束。
-- Window 的控制柄可编辑开口宽度、窗台、过梁和开口高度。
+- 全部 15 种形状的手柄沿用编辑器的“使用吸附”开关，默认步长为编辑器位移吸附步长的十分之一。在检查器 **Geometry → Grid Snap Ratio**（默认 0.1）中调整比例，每个形状分别保存。Ctrl 临时切换吸附，Shift 将当前步长再缩小十倍。网格以当前编辑场景的根节点为基准，普通 Node 根节点使用世界坐标。旋转后的手柄沿移动分量最大的坐标轴对齐网格平面。精确对齐需要非整厘米尺寸时，会保留其他部分的可见尺寸并关闭 Round Size，所有参数变化可一起撤销／重做。Doorway 和 Window 开口保留墙厚和开口范围，范围内没有网格点时优先满足这些约束。
+- Doorway 在门洞左右内侧和顶部增加手柄，可对称调整门洞净宽和净高，保持外框尺寸不变。Window 的控制柄可编辑开口宽度、窗台、过梁和开口高度。
 - 支持撤销/重做、仅保存参数的场景存储、自定义材质、碰撞层/掩码以及材质默认值。
 - 网格线和棋盘格明暗均在着色器中计算。Grid Size 设置主网格线间距：默认 1 m 主网格内含 0.1 m 细分网格，细分间距始终为 Grid Size 的十分之一。无需任何贴图文件，支持本地和世界坐标对齐。
 

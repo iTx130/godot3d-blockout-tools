@@ -34,12 +34,12 @@ Add a **Player** through Gameplay Nodes and run the scene (F6). At startup, Play
 
 ## Shapes and editing
 
-Box, Cone, Corner Curved, Corner Ramp, Cylinder, Doorway, Railing, Ramp, Skewbox, Sphere, Stairs Curved, Stairs Linear, Stairs Linear Manual, Tube and Window.
+Box, Cone, Corner Curved, Corner Ramp, Cylinder, Doorway, Railing, Ramp, Skewbox, Sphere, Stairs Curved, Stairs Linear, Tube and Window. Stairs Linear Manual is temporarily hidden from creation and the Inspector shape selector; existing nodes remain compatible.
 
 - Dimensions use metres and Godot local axes: X width, Y height, forward depth toward −Z.
 - Rounded dimensions snap to 0.01 m; disabling Round Size permits finer input.
-- Handles on all 15 shapes use the editor’s Use Snap toggle, with a default step of one tenth of the editor translation snap step. Change **Geometry → Grid Snap Ratio** (default 0.1) in the Inspector; each shape saves its own value. Ctrl temporarily toggles snapping and Shift further divides the current step by ten. The grid follows the edited scene root; a plain Node root uses world coordinates. Rotated handles snap to grid planes along their largest movement component. Exact alignment between centimetres preserves other visible dimensions before disabling Round Size; all parameter changes undo/redo together. Window openings retain their wall-thickness and opening limits, which take priority when no grid plane fits inside the allowed range.
-- Window handles edit opening width, sill, lintel and opening elevation.
+- Handles on all 15 shapes use the editor’s Use Snap toggle, with a default step of one tenth of the editor translation snap step. Change **Geometry → Grid Snap Ratio** (default 0.1) in the Inspector; each shape saves its own value. Ctrl temporarily toggles snapping and Shift further divides the current step by ten. The grid follows the edited scene root; a plain Node root uses world coordinates. Rotated handles snap to grid planes along their largest movement component. Exact alignment between centimetres preserves other visible dimensions before disabling Round Size; all parameter changes undo/redo together. Doorway and Window openings retain their wall-thickness and opening limits, which take priority when no grid plane fits inside the allowed range.
+- Doorway adds handles at both inner edges and the opening top. They adjust the symmetric clear width and clear height without changing the outer frame. Window handles edit opening width, sill, lintel and opening elevation.
 - Undo/redo, parameter-only scene saving, custom materials, collision layers/masks and material defaults are supported.
 - Grid lines and checker shading are calculated in the shader. Grid Size sets the major-line spacing: the default 1 m coarse grid contains 0.1 m fine divisions. Minor spacing is always one tenth of Grid Size. No texture files are required. Local and world alignment are supported.
 

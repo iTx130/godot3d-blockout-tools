@@ -38,6 +38,7 @@ Box, Cone, Corner Curved, Corner Ramp, Cylinder, Doorway, Railing, Ramp, Skewbox
 
 - Dimensions use metres and Godot local axes: X width, Y height, forward depth toward −Z.
 - Rounded dimensions snap to 0.01 m; disabling Round Size permits finer input.
+- Box size handles use the editor’s Use Snap toggle, with a default step of one tenth of the editor translation snap step. Change **Grid Snap Ratio** (default 0.1) in the Box Inspector to adjust this fraction; each Box saves its own value. Ctrl temporarily toggles snapping and Shift further divides the current step by ten. The grid follows the edited scene root; a plain Node root uses world coordinates. Rotated handles snap to grid planes along their largest movement component. Exact alignment between centimetres automatically disables Round Size, with both changes included in undo/redo.
 - Window handles edit opening width, sill, lintel and opening elevation.
 - Undo/redo, parameter-only scene saving, custom materials, collision layers/masks and material defaults are supported.
 - Grid lines and checker shading are calculated in the shader. Grid Size sets the major-line spacing: the default 1 m coarse grid contains 0.1 m fine divisions. Minor spacing is always one tenth of Grid Size. No texture files are required. Local and world alignment are supported.

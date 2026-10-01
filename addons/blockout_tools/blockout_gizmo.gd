@@ -120,12 +120,16 @@ func _get_handle_name(gizmo: EditorNode3DGizmo, id: int, _secondary: bool) -> St
 
 func _get_handle_value(gizmo: EditorNode3DGizmo, id: int, _secondary: bool) -> Variant:
 	var node := gizmo.get_node_3d()
+	if node.shape_type == Shape.ShapeType.BOX:
+		return {"box_size": node.box_size, "round_size": node.round_size}
 	if _is_window_opening_handle(node, id) and id == 7:
 		return {"top_thickness": node.top_thickness, "bottom_thickness": node.bottom_thickness}
 	return node.get(_handles(node)[id][0])
 
 func _set_handle(gizmo: EditorNode3DGizmo, id: int, _secondary: bool, camera: Camera3D, screen_pos: Vector2) -> void:
 	var node := gizmo.get_node_3d()
+	if absf(node.global_basis.determinant()) < 0.000000001:
+		return
 	var axis := _handle_axis(node, id)
 	var inverse := node.global_transform.affine_inverse()
 	var origin := inverse * camera.project_ray_origin(screen_pos)
@@ -135,9 +139,63 @@ func _set_handle(gizmo: EditorNode3DGizmo, id: int, _secondary: bool, camera: Ca
 	var axis_origin := handle_position - axis * handle_position.dot(axis)
 	var closest := Geometry3D.get_closest_points_between_segments(axis_origin-axis*1000,axis_origin+axis*1000,origin,end)
 	var size: float = closest[0].dot(axis)
+	if node.shape_type == Shape.ShapeType.BOX:
+		var step: float = _editor_grid_snap_step() * node.grid_snap_ratio
+		if step > 0.0:
+			var grid_transform := _box_grid_transform(node, EditorInterface.get_edited_scene_root())
+			_apply_box_grid_size(node, id, _snap_box_extent(grid_transform, id, size, step))
+			return
 	if node.shape_type == Shape.ShapeType.STAIRS_CURVED and _handles(node)[id][0] == "step_width":
 		size -= _dimension(node, "stairs_inner_radius")
 	_apply_handle_size(node, id, size)
+
+func _editor_grid_snap_step() -> float:
+	# These editor APIs include Ctrl's temporary toggle and Shift's fine step.
+	if Engine.is_editor_hint() and EditorInterface.is_node_3d_snap_enabled():
+		return EditorInterface.get_node_3d_translate_snap()
+	return 0.0
+
+static func _box_grid_transform(node: Node3D, scene_root: Node) -> Transform3D:
+	if scene_root is Node3D and (scene_root == node or scene_root.is_ancestor_of(node)):
+		if absf(scene_root.global_basis.determinant()) >= 0.000000001:
+			return scene_root.global_transform.affine_inverse() * node.global_transform
+	# A plain Node scene root has no spatial transform: its grid is world space.
+	return node.global_transform
+
+static func _snap_box_extent(grid_transform: Transform3D, id: int, size: float, step: float) -> float:
+	if step <= 0.0 or not is_finite(step):
+		return size
+	var direction := Vector3.ZERO
+	direction[id] = -1.0 if id == 2 else 1.0
+	var movement := grid_transform.basis * direction
+	# Keep the handle on its resizing axis. Rotated handles intersect the grid
+	# planes normal to their largest movement component, rather than moving off-axis.
+	var component := movement.abs().max_axis_index()
+	var speed := movement[component]
+	if absf(speed) < 0.000000001:
+		return size
+	var origin := grid_transform.origin[component]
+	var coordinate := origin + speed * maxf(size, MIN_SIZE)
+	var extent := (snappedf(coordinate, step) - origin) / speed
+	if extent < MIN_SIZE:
+		# Choose the first valid grid plane beyond the fixed base corner.
+		var limit := (origin + speed * MIN_SIZE) / step
+		var plane := ceilf(limit) if speed > 0.0 else floorf(limit)
+		extent = (plane * step - origin) / speed
+	return maxf(extent, MIN_SIZE)
+
+static func _apply_box_grid_size(node: Node3D, id: int, size: float) -> void:
+	var dimensions: Vector3 = node.box_size
+	if node.round_size and absf(size - floorf(size * 100.0 + 0.5) / 100.0) > 0.000001:
+		# Preserve the stationary visible dimensions before allowing exact contact
+		# between centimetres. Round Size is captured in the same undo action.
+		dimensions = (dimensions * 100.0 + Vector3.ONE * 0.5).floor() / 100.0
+		dimensions = dimensions.max(Vector3.ONE * 0.001)
+		node.round_size = false
+	elif node.round_size:
+		size = floorf(size * 100.0 + 0.5) / 100.0
+	dimensions[id] = size
+	node.box_size = dimensions
 
 static func _bounded_size(node: Node, value: float, maximum: float) -> float:
 	if node.round_size:

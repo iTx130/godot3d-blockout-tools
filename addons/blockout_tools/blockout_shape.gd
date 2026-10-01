@@ -35,6 +35,12 @@ var shape_type: int = 0:
 		box_size = value
 		request_rebuild()
 
+## Fraction of the editor translation snap step used by this Box's size handles.
+## 0.1 gives ten divisions per grid cell; Ctrl/Shift keep their editor behavior.
+@export_range(0.001, 1.0, 0.001, "or_greater") var grid_snap_ratio: float = 0.1:
+	set(value):
+		grid_snap_ratio = maxf(value, 0.001) if is_finite(value) else 0.1
+
 @export_category("Cone / Cylinder")
 @export_range(0.01, 100.0, 0.01, "or_greater") var cone_radius: float = 0.5:
 	set(value):
@@ -335,6 +341,8 @@ var last_builder: BlockoutMeshBuilder
 var build_count := 0
 
 func _validate_property(property: Dictionary) -> void:
+	if property.name == "grid_snap_ratio" and shape_type != ShapeType.BOX:
+		property.usage &= ~PROPERTY_USAGE_EDITOR
 	if PROPERTY_SHAPES.has(property.name) and shape_type not in PROPERTY_SHAPES[property.name]:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
 	if property.name == "custom_material" and material_type != 1:

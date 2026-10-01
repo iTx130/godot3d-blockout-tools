@@ -60,10 +60,6 @@ Only `addons/blockout_tools/` is needed to install the plugin.
 
 The shape set and workflow are inspired by blockout tools for Unreal Engine 5. This is an independent, native Godot implementation. It contains no code or assets from those tools and is not affiliated with or endorsed by their authors.
 
-## Changelog
-
-See the [bilingual changelog](docs/changelog.md) for changes grouped by tag. Development summaries stay under Unreleased until the next version is published.
-
 ## License
 
 [MIT](LICENSE) © 2026 itx130

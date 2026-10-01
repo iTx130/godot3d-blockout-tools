@@ -2,6 +2,7 @@ param(
 	[Parameter(Mandatory = $true)]
 	[ValidatePattern('^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$')]
 	[string]$Tag,
+	[string]$ReleaseNotesPath = '',
 	[string]$ChangelogPath = (Join-Path $PSScriptRoot '../../docs/changelog.md'),
 	[string]$PluginConfigPath = (Join-Path $PSScriptRoot '../../addons/blockout_tools/plugin.cfg'),
 	[Parameter(Mandatory = $true)]
@@ -14,24 +15,32 @@ if (!$version.Success -or $version.Groups['version'].Value -cne $Tag.Substring(1
 	throw "The committed plugin version must match $Tag."
 }
 
-$changelog = (Get-Content -LiteralPath $ChangelogPath -Raw -Encoding utf8).Replace("`r`n", "`n")
-# Only level-two headings delimit releases; language headings remain in the body.
-$sections = [regex]::Matches($changelog, '(?m)^## (?<heading>[^\n]+)$')
-$tagPattern = '^\[' + [regex]::Escape($Tag) + '\] - (?<date>[0-9]{4}-[0-9]{2}-[0-9]{2})$'
-$matchingSections = @($sections | Where-Object { $_.Groups['heading'].Value -cmatch $tagPattern })
-if ($matchingSections.Count -ne 1) {
-	throw "Expected exactly one dated ## [$Tag] section in $ChangelogPath."
-}
-$section = $matchingSections[0]
-$start = $section.Index + $section.Length
-$end = $changelog.Length
-foreach ($nextSection in $sections) {
-	if ($nextSection.Index -gt $section.Index) {
-		$end = $nextSection.Index
-		break
+if ($ReleaseNotesPath) {
+	# CI reads a committed version summary without the local changelog.
+	$notes = (Get-Content -LiteralPath $ReleaseNotesPath -Raw -Encoding utf8).Replace("`r`n", "`n").Trim()
+	if ($notes -match '(?m)^## \[') {
+		throw 'Release notes must contain only the selected version summary.'
 	}
+} else {
+	$changelog = (Get-Content -LiteralPath $ChangelogPath -Raw -Encoding utf8).Replace("`r`n", "`n")
+	# Only level-two headings delimit releases; language headings remain in the body.
+	$sections = [regex]::Matches($changelog, '(?m)^## (?<heading>[^\n]+)$')
+	$tagPattern = '^\[' + [regex]::Escape($Tag) + '\] - (?<date>[0-9]{4}-[0-9]{2}-[0-9]{2})$'
+	$matchingSections = @($sections | Where-Object { $_.Groups['heading'].Value -cmatch $tagPattern })
+	if ($matchingSections.Count -ne 1) {
+		throw "Expected exactly one dated ## [$Tag] section in $ChangelogPath."
+	}
+	$section = $matchingSections[0]
+	$start = $section.Index + $section.Length
+	$end = $changelog.Length
+	foreach ($nextSection in $sections) {
+		if ($nextSection.Index -gt $section.Index) {
+			$end = $nextSection.Index
+			break
+		}
+	}
+	$notes = $changelog.Substring($start, $end - $start).Trim()
 }
-$notes = $changelog.Substring($start, $end - $start).Trim()
 $languages = [regex]::Matches($notes, '(?m)^### (?<language>English|中文)[ \t]*$')
 if ($languages.Count -ne 2 -or @($languages | Where-Object { $_.Groups['language'].Value -ceq 'English' }).Count -ne 1 -or @($languages | Where-Object { $_.Groups['language'].Value -ceq '中文' }).Count -ne 1) {
 	throw "The $Tag summary must contain exactly one ### English and one ### 中文 section."

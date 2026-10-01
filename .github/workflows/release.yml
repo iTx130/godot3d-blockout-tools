@@ -17,12 +17,13 @@ jobs:
       - name: Check out tagged source
         uses: actions/checkout@v4
 
-      - name: Read bilingual release notes from changelog
+      - name: Read prepared bilingual release notes
         id: notes
         shell: pwsh
         run: |
           $notes = Join-Path $env:RUNNER_TEMP 'release-notes.md'
-          ./.github/scripts/export_release_notes.ps1 -Tag $env:GITHUB_REF_NAME -OutputPath $notes
+          $source = Join-Path '.github/release-notes' ($env:GITHUB_REF_NAME + '.md')
+          ./.github/scripts/export_release_notes.ps1 -Tag $env:GITHUB_REF_NAME -ReleaseNotesPath $source -OutputPath $notes
           "title=Blockout Tools $env:GITHUB_REF_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "notes=$notes" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 

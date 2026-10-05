@@ -5,31 +5,22 @@ const SHAPE_SCRIPT := preload("blockout_shape.gd")
 const DOCK_SCRIPT := preload("blockout_dock.gd")
 const GIZMO_SCRIPT := preload("blockout_gizmo.gd")
 const DEFAULTS := preload("blockout_defaults.gd")
-const PLAYER_SCENE := preload("nodes/player.tscn")
-const SPAWN_SCENE := preload("nodes/spawn_point.tscn")
-const SPAWN_GIZMO := preload("spawn_point_gizmo.gd")
 
 var dock: Control
 var shape_icon: Texture2D
 var shape_gizmo: EditorNode3DGizmoPlugin
-var spawn_gizmo: EditorNode3DGizmoPlugin
 
 func _enter_tree() -> void:
 	DEFAULTS.register_settings()
 	shape_gizmo = GIZMO_SCRIPT.new()
 	shape_gizmo.history = get_undo_redo()
 	add_node_3d_gizmo_plugin(shape_gizmo)
-	spawn_gizmo = SPAWN_GIZMO.new()
-	add_node_3d_gizmo_plugin(spawn_gizmo)
 	dock = DOCK_SCRIPT.new()
 	dock.name = "Blockout Tools"
 	dock.plugin = self
 	add_control_to_dock(DOCK_SLOT_LEFT_UL, dock)
 
 func _exit_tree() -> void:
-	if spawn_gizmo != null:
-		remove_node_3d_gizmo_plugin(spawn_gizmo)
-		spawn_gizmo = null
 	if shape_gizmo != null:
 		remove_node_3d_gizmo_plugin(shape_gizmo)
 		shape_gizmo = null
@@ -47,29 +38,6 @@ func create_shape(shape_type: int) -> void:
 	node.name = node.shape_type_name(shape_type)
 	var history := get_undo_redo()
 	history.create_action("Add " + node.name, UndoRedo.MERGE_DISABLE, parent)
-	history.add_do_method(parent, "add_child", node, true)
-	history.add_do_method(node, "set_owner", parent)
-	history.add_undo_method(parent, "remove_child", node)
-	history.add_do_reference(node)
-	history.commit_action()
-	get_editor_interface().get_selection().clear()
-	get_editor_interface().get_selection().add_node(node)
-	get_editor_interface().edit_node(node)
-
-func create_player() -> void:
-	_create_gameplay_node(PLAYER_SCENE, "Player")
-
-func create_spawn_point() -> void:
-	_create_gameplay_node(SPAWN_SCENE, "Spawn Point")
-
-func _create_gameplay_node(scene: PackedScene, label: String) -> void:
-	var parent: Node = get_editor_interface().get_edited_scene_root()
-	if parent == null:
-		push_warning("Open a scene before adding a " + label + ".")
-		return
-	var node := scene.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
-	var history := get_undo_redo()
-	history.create_action("Add " + label, UndoRedo.MERGE_DISABLE, parent)
 	history.add_do_method(parent, "add_child", node, true)
 	history.add_do_method(node, "set_owner", parent)
 	history.add_undo_method(parent, "remove_child", node)

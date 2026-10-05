@@ -1,0 +1,188 @@
+[
+  {
+    "original_path": "addons/blockout_tools/nodes/player.gd",
+    "archive_path": "addons/blockout_tools/nodes/player.gd",
+    "sha256": "1CD9835B9FBC9993463797A68B44EA8FBAE5252F407F32CB33416A1645990156",
+    "kind": "moved"
+  },
+  {
+    "original_path": "addons/blockout_tools/nodes/player.gd.uid",
+    "archive_path": "addons/blockout_tools/nodes/player.gd.uid",
+    "sha256": "573BC086687096C0D0F2B59247AF9A255302D54BB6ED9616F9BACB18E9069912",
+    "kind": "moved"
+  },
+  {
+    "original_path": "addons/blockout_tools/nodes/player.tscn",
+    "archive_path": "addons/blockout_tools/nodes/player.tscn",
+    "sha256": "94C53CADBC69E78E91E6A7F81382F3BF22D76C13704411877050FF666170C744",
+    "kind": "moved"
+  },
+  {
+    "original_path": "addons/blockout_tools/nodes/spawn_point.gd",
+    "archive_path": "addons/blockout_tools/nodes/spawn_point.gd",
+    "sha256": "8A50B238C85523CB81942264E4EBA04F7429A94D2FB0874EFCE6BE576D9793D1",
+    "kind": "moved"
+  },
+  {
+    "original_path": "addons/blockout_tools/nodes/spawn_point.gd.uid",
+    "archive_path": "addons/blockout_tools/nodes/spawn_point.gd.uid",
+    "sha256": "51FE3397E3D8C7C5B6E87B6B187957D7ECA04382E7E02A70AAEFE41E776E0707",
+    "kind": "moved"
+  },
+  {
+    "original_path": "addons/blockout_tools/nodes/spawn_point.tscn",
+    "archive_path": "addons/blockout_tools/nodes/spawn_point.tscn",
+    "sha256": "F797513AEE3F15D7C54C8651322FA559DB92CEDEEF5231EE91CE1F86120575F2",
+    "kind": "moved"
+  },
+  {
+    "original_path": "addons/blockout_tools/spawn_point_gizmo.gd",
+    "archive_path": "addons/blockout_tools/spawn_point_gizmo.gd",
+    "sha256": "18D4F075C6D127F6FC97D56303373A8A234946EACEB7CA9964117286AE43B86E",
+    "kind": "moved"
+  },
+  {
+    "original_path": "addons/blockout_tools/spawn_point_gizmo.gd.uid",
+    "archive_path": "addons/blockout_tools/spawn_point_gizmo.gd.uid",
+    "sha256": "1F73C1EF65F8ED5EA73A044BDF901842C601CA58D00C700E997F4480433A8EA1",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/gameplay_geometry.gd",
+    "archive_path": "tests/gameplay_geometry.gd",
+    "sha256": "12BD246A7B6CFE91569A070FD52732555534ED3B37EEFB06B6EFB4E718E9D7D6",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/gameplay_geometry.gd.uid",
+    "archive_path": "tests/gameplay_geometry.gd.uid",
+    "sha256": "22AB87C1264917300DA5AB13FC56446D3AEF6DC8B0A084A9C68E032A27B14389",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/player_editor.gd",
+    "archive_path": "tests/player_editor.gd",
+    "sha256": "CAFFFD59EFFE4808E41FEDDE583B6064F95EB3DDAC205B6CAF84FE93761FD474",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/player_editor.gd.uid",
+    "archive_path": "tests/player_editor.gd.uid",
+    "sha256": "1E44B200D4385530A1B008AF3176877473987F5456E0670E784F874B466E376A",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/player_editor.tscn",
+    "archive_path": "tests/player_editor.tscn",
+    "sha256": "2FE8E6457CA90A683C9D53B8D6CE09D93FA9B3234A997AB6B1931D97249F62E8",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/player_runtime.gd",
+    "archive_path": "tests/player_runtime.gd",
+    "sha256": "4BBE3CABE068CA6574E82ECBB4226AFB99186F79A7A73A1155FE05141C65A2D3",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/player_runtime.gd.uid",
+    "archive_path": "tests/player_runtime.gd.uid",
+    "sha256": "6295F4EC8D42A75873149689FE42627B6EF8E73BDFBCE736AB6350046B6DF5EA",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/player_views_render.gd",
+    "archive_path": "tests/player_views_render.gd",
+    "sha256": "E8DE200F11FE2F24D9CCC22AF1C98A73D88ECD373279C2F71805C26D68319570",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/player_views_render.gd.uid",
+    "archive_path": "tests/player_views_render.gd.uid",
+    "sha256": "916BC5380168194CE6FCB992614C025EE608B1D58101D0D9DDC704180BDC84B0",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/run_gameplay_tests.ps1",
+    "archive_path": "tests/run_gameplay_tests.ps1",
+    "sha256": "A61565250E84D4766D672E817750E2E845E0CAA0A844FDCB6F2ECE48230DEFE4",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/spawn_editor.gd",
+    "archive_path": "tests/spawn_editor.gd",
+    "sha256": "F980524FA692DD8B0033AF806163A737CA6D9CC1D48181B0480D57A78F811620",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/spawn_editor.gd.uid",
+    "archive_path": "tests/spawn_editor.gd.uid",
+    "sha256": "9D31B10B377151D5C789B1F1BADD7ECEDFEFEC0E64893967E142F918613427D0",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/spawn_editor.tscn",
+    "archive_path": "tests/spawn_editor.tscn",
+    "sha256": "2D09944FCF3F5DF453AFFEA694E0431C0FF3E12C276D33720E732FE0C58B79CC",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/spawn_runtime.gd",
+    "archive_path": "tests/spawn_runtime.gd",
+    "sha256": "68BDA3781D26BB2AD9B60A1CAC0E9DE48C232CEF19A369F6E1BBE358A4D8CFDB",
+    "kind": "moved"
+  },
+  {
+    "original_path": "tests/spawn_runtime.gd.uid",
+    "archive_path": "tests/spawn_runtime.gd.uid",
+    "sha256": "FD88DAB76AA80CE41F90197FC3DFAEDAC0A04CAD1793A9ADB88EF95E08E1F82E",
+    "kind": "moved"
+  },
+  {
+    "original_path": "addons/blockout_tools/plugin.gd",
+    "archive_path": "integration/addons/blockout_tools/plugin.gd",
+    "sha256": "BD45227D95206C312C19B4787B2F28F293FE86CABD7939D024E875B9A5AA4889",
+    "kind": "integration_snapshot"
+  },
+  {
+    "original_path": "addons/blockout_tools/blockout_dock.gd",
+    "archive_path": "integration/addons/blockout_tools/blockout_dock.gd",
+    "sha256": "51574A6A9A5A6AB4EFACC2423316D9DD73A357B73D97B381382ED4DE9E87F234",
+    "kind": "integration_snapshot"
+  },
+  {
+    "original_path": "tests/run_acceptance.ps1",
+    "archive_path": "integration/tests/run_acceptance.ps1",
+    "sha256": "FE3554908AA50FE39D55D5C5CCF40C9411C04BB33D0FEF47483F1489EAAF2253",
+    "kind": "integration_snapshot"
+  },
+  {
+    "original_path": "tests/cold_install.ps1",
+    "archive_path": "integration/tests/cold_install.ps1",
+    "sha256": "0D690281C623721BA224DF0B4E418DE0960631E7FBE0371D4976490CD6FA0EC2",
+    "kind": "integration_snapshot"
+  },
+  {
+    "original_path": "tests/cold_probe.gd",
+    "archive_path": "integration/tests/cold_probe.gd",
+    "sha256": "A4A3BCCE732EB6E468FBF9A6E9FEF9AC2989B3DDE4C61836C190D898311132F5",
+    "kind": "integration_snapshot"
+  },
+  {
+    "original_path": "tests/dock_smoke.gd",
+    "archive_path": "integration/tests/dock_smoke.gd",
+    "sha256": "5258A99C1D508FA0D892907CCCB5FC704763E88C9E3DD578FAFD15A2C2987729",
+    "kind": "integration_snapshot"
+  },
+  {
+    "original_path": "tests/render_dock.gd",
+    "archive_path": "integration/tests/render_dock.gd",
+    "sha256": "C0D0214139CE978639A6DAABE59B567A9C943EF8CDB211E2401E55ACAFDBB2C3",
+    "kind": "integration_snapshot"
+  },
+  {
+    "original_path": "TESTING.md",
+    "archive_path": "integration/TESTING.md",
+    "sha256": "5FB03C7D09770267F470CA1831BF7E8F17D8D4928990FC706F2D0C24150BA91B",
+    "kind": "integration_snapshot"
+  }
+]

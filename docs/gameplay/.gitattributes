@@ -1,0 +1,3 @@
+addons/** -text whitespace=cr-at-eol
+tests/** -text whitespace=cr-at-eol
+integration/** -text whitespace=cr-at-eol

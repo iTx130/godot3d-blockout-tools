@@ -4,6 +4,9 @@ extends RefCounted
 
 const Builder = preload("blockout_mesh.gd")
 const HEX_FACES = [[0,1,2,3],[4,7,6,5],[0,4,5,1],[3,2,6,7],[0,3,7,4],[1,5,6,2]]
+const RAILING_LAYER_STEP := 0.5
+const RAILING_MIN_HEIGHT := RAILING_LAYER_STEP
+const RAILING_MAX_HEIGHT := RAILING_LAYER_STEP * 256.0
 
 static func _q(value: float, rounded: bool) -> float:
 	return floorf(value * 100.0 + 0.5) / 100.0 if rounded else value
@@ -178,21 +181,47 @@ static func _beam(b: BlockoutMeshBuilder, start: Vector3, end: Vector3, width: f
 	var y := up*height
 	b.solid(PackedVector3Array([start,start+x,start+x+y,start+y,end,end+x,end+x+y,end+y]),HEX_FACES)
 
+static func railing_joint_distances(p: Node) -> PackedFloat64Array:
+	var count := clampi(p.railing_sections, 1, 256)
+	var length := _length(p.railing_section_length, p.round_size)
+	var last_length: float = length
+	if p._railing_last_section_length >= 0.0:
+		last_length = maxf(_q(p._railing_last_section_length, p.round_size), 0.000001)
+	var distances := PackedFloat64Array()
+	for i in range(count):
+		distances.append(length * i)
+	distances.append(length * (count - 1) + last_length)
+	return distances
+
+static func railing_height(p: Node) -> float:
+	return clampf(_q(p.railing_height, p.round_size), RAILING_MIN_HEIGHT, RAILING_MAX_HEIGHT)
+
+static func railing_layer_heights(p: Node) -> PackedFloat64Array:
+	var height := railing_height(p)
+	var count := clampi(ceili(height / RAILING_LAYER_STEP), 1, 256)
+	var heights := PackedFloat64Array()
+	for i in range(count):
+		heights.append(minf(RAILING_LAYER_STEP * (i + 1), height) - 0.15)
+	return heights
+
 static func _railing(b: BlockoutMeshBuilder, p: Node) -> void:
-	var count := clampi(p.railing_sections,1,256)
-	var length := _length(p.railing_section_length,p.round_size)
+	var distances := railing_joint_distances(p)
+	var height := railing_height(p)
+	var layers := railing_layer_heights(p)
+	var count := distances.size() - 1
+	var total := distances[count]
 	var elevation := _q(p.railing_skew_elevation,p.round_size)
 	for i in range(count+1):
-		var joint := Vector3(0,elevation*float(i)/count,-length*i)
+		var joint := Vector3(0, elevation * distances[i] / total, -distances[i])
 		if i < count or p.railing_has_end_pole:
-			b.box(joint+Vector3(-0.05,0,0.05),Vector3(0.1,1.0,0.1))
+			b.box(joint+Vector3(-0.05,0,0.05),Vector3(0.1,height,0.1))
 		if i == count:
 			continue
-		var next := Vector3(0,elevation*float(i+1)/count,-length*(i+1))
+		var next := Vector3(0, elevation * distances[i + 1] / total, -distances[i + 1])
 		if p.railing_type == 1:
-			_beam(b,joint+Vector3(-0.035,0.1,0),next+Vector3(-0.035,0.1,0),0.07,0.8)
+			_beam(b,joint+Vector3(-0.035,0.1,0),next+Vector3(-0.035,0.1,0),0.07,height-0.2)
 		else:
-			for y in [0.35,0.85]:
+			for y in layers:
 				_beam(b,joint+Vector3(-0.04,y,0),next+Vector3(-0.04,y,0),0.08,0.08)
 
 static func _skewbox(b: BlockoutMeshBuilder, p: Node) -> void:

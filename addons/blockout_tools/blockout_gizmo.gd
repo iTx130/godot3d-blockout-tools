@@ -3,13 +3,15 @@ extends EditorNode3DGizmoPlugin
 
 var history: EditorUndoRedoManager
 const Shape = preload("blockout_shape.gd")
+const Generator = preload("shape_generator.gd")
 const MIN_SIZE := 0.01
 const OPENING_HANDLES := 3
+const BOX_CORNER_HANDLE := 3
 const ROUNDED_PROPERTIES: Array[String] = [
 	"box_size", "cone_radius", "cone_height", "cylinder_radius", "cylinder_height",
 	"corner_curved_radius", "corner_curved_height", "ramp_width", "ramp_depth", "ramp_height",
 	"doorway_width", "doorway_height", "doorway_depth", "side_thickness", "top_thickness", "bottom_thickness",
-	"railing_section_length", "railing_skew_elevation", "skewbox_endpoint", "skewbox_start_size", "skewbox_end_size",
+	"railing_section_length", "railing_skew_elevation", "railing_height", "_railing_last_section_length", "skewbox_endpoint", "skewbox_start_size", "skewbox_end_size",
 	"sphere_radius", "stairs_size", "step_width", "step_depth", "step_height",
 	"step_depth_spacing", "step_height_spacing", "stairs_inner_radius", "stairs_height",
 	"tube_radius", "tube_thickness", "tube_height",
@@ -35,7 +37,7 @@ func _get_gizmo_name() -> String:
 
 static func _handles(node: Node) -> Array:
 	match node.shape_type:
-		0: return [["box_size",0],["box_size",1],["box_size",2]]
+		0: return [["box_size",0],["box_size",1],["box_size",2],["box_size",0]]
 		1: return [["cone_radius",0],["cone_height",1]]
 		2: return [["corner_curved_radius",0],["corner_curved_height",1]]
 		3,7: return [["ramp_width",0],["ramp_depth",2],["ramp_height",1]]
@@ -44,7 +46,7 @@ static func _handles(node: Node) -> Array:
 			["doorway_depth",2],["doorway_width",0],["doorway_height",1],
 			["side_thickness",0],["side_thickness",0],["top_thickness",1],
 		]
-		6: return [["railing_section_length",2],["railing_skew_elevation",1]]
+		6: return [["railing_section_length",2],["railing_skew_elevation",1],["railing_height",1]]
 		8: return [["skewbox_endpoint",0],["skewbox_endpoint",1],["skewbox_endpoint",2]]
 		9: return [["sphere_radius",0]]
 		10: return [["stairs_inner_radius",2],["step_width",2],["stairs_height",1]]
@@ -65,16 +67,45 @@ static func _dimension(node: Node, property: String) -> float:
 static func _is_opening_handle(node: Node, id: int) -> bool:
 	return node.shape_type in [Shape.ShapeType.DOORWAY, Shape.ShapeType.WINDOW] and id >= OPENING_HANDLES
 
+static func _is_box_corner_handle(node: Node, id: int) -> bool:
+	return node.shape_type == Shape.ShapeType.BOX and id == BOX_CORNER_HANDLE
+
 static func _handle_axis(node: Node, id: int) -> Vector3:
+	if _is_box_corner_handle(node, id):
+		return Vector3.ZERO
 	var entry: Array = _handles(node)[id]
 	var axis := Vector3.ZERO
 	# Depth is a positive extent along -Z. Endpoints are signed coordinates.
 	axis[entry[1]] = -1.0 if entry[1] == 2 and entry[0] != "skewbox_endpoint" else 1.0
 	return axis
 
+static func _railing_elevation_distance(distances: PackedFloat64Array) -> float:
+	var total := distances[distances.size() - 1]
+	if distances.size() == 2:
+		return total
+	var middle := distances[1]
+	for i in range(2, distances.size() - 1):
+		if absf(distances[i] - total * 0.5) < absf(middle - total * 0.5) - 0.000000001:
+			middle = distances[i]
+	return middle
+
 static func _handle_position(node: Node, id: int) -> Vector3:
 	var entry: Array = _handles(node)[id]
 	var point := Vector3.ZERO
+	if _is_box_corner_handle(node, id):
+		var size: Vector3 = _rounded_value(node.box_size) if node.round_size else node.box_size
+		return Vector3(maxf(size.x, 0.001), maxf(size.y, 0.001), -maxf(size.z, 0.001))
+	if node.shape_type == Shape.ShapeType.RAILING:
+		var distances := Generator.railing_joint_distances(node)
+		var total := distances[distances.size() - 1]
+		var elevation := _dimension(node, "railing_skew_elevation")
+		var height := Generator.railing_height(node)
+		if id == 2:
+			return Vector3(0, height, 0)
+		if id == 0:
+			return Vector3(0, elevation, -total)
+		var distance := _railing_elevation_distance(distances)
+		return Vector3(0, height + elevation * distance / total, -distance)
 	if _is_opening_handle(node, id):
 		var width := _dimension(node, "doorway_width")
 		var ceiling := _dimension(node, "doorway_height") - _dimension(node, "top_thickness")
@@ -121,6 +152,8 @@ func _redraw(gizmo: EditorNode3DGizmo) -> void:
 		gizmo.add_lines(lines, get_material("opening_outline", gizmo))
 
 func _get_handle_name(gizmo: EditorNode3DGizmo, id: int, _secondary: bool) -> String:
+	if _is_box_corner_handle(gizmo.get_node_3d(), id):
+		return "Box width/depth [Godot X/-Z]"
 	if _is_opening_handle(gizmo.get_node_3d(), id):
 		if gizmo.get_node_3d().shape_type == Shape.ShapeType.DOORWAY:
 			return ["Doorway opening width (left)", "Doorway opening width (right)", "Doorway opening top"][id - OPENING_HANDLES]
@@ -145,6 +178,8 @@ static func _rounded_properties(node: Node) -> Array[String]:
 
 static func _geometry_snapshot(node: Node) -> Dictionary:
 	var result := {"round_size": node.round_size}
+	if node.shape_type == Shape.ShapeType.RAILING:
+		result["railing_sections"] = node.railing_sections
 	for property in _rounded_properties(node):
 		result[property] = node.get(property)
 	return result
@@ -160,16 +195,23 @@ func _set_handle(gizmo: EditorNode3DGizmo, id: int, _secondary: bool, camera: Ca
 	var node := gizmo.get_node_3d()
 	if absf(node.global_basis.determinant()) < 0.000000001:
 		return
-	var axis := _handle_axis(node, id)
 	var inverse := node.global_transform.affine_inverse()
 	var origin := inverse * camera.project_ray_origin(screen_pos)
+	var step: float = _editor_grid_snap_step() * node.grid_snap_ratio
+	if _is_box_corner_handle(node, id):
+		var direction := inverse.basis * camera.project_ray_normal(screen_pos)
+		var point: Variant = _box_corner_ray_point(origin, direction, _handle_position(node, id).y)
+		if point != null:
+			var grid_transform := _box_grid_transform(node, EditorInterface.get_edited_scene_root()) if step > 0.0 else Transform3D.IDENTITY
+			_apply_box_corner_size(node, Vector2(point.x, -point.z), grid_transform, step)
+		return
+	var axis := _handle_axis(node, id)
 	var end := inverse * (camera.project_ray_origin(screen_pos) + camera.project_ray_normal(screen_pos)*10000)
 	# Opening handles slide along an axis through the handle, not the node origin.
 	var handle_position := _handle_position(node, id)
 	var axis_origin := handle_position - axis * handle_position.dot(axis)
 	var closest := Geometry3D.get_closest_points_between_segments(axis_origin-axis*1000,axis_origin+axis*1000,origin,end)
 	var coordinate: float = closest[0].dot(axis)
-	var step: float = _editor_grid_snap_step() * node.grid_snap_ratio
 	if step > 0.0:
 		var grid_transform := _box_grid_transform(node, EditorInterface.get_edited_scene_root())
 		coordinate = _snap_handle_coordinate(node, id, coordinate, grid_transform, step)
@@ -177,7 +219,63 @@ func _set_handle(gizmo: EditorNode3DGizmo, id: int, _secondary: bool, camera: Ca
 		return
 	_apply_handle_size(node, id, _coordinate_to_size(node, id, coordinate))
 
+static func _box_corner_ray_point(origin: Vector3, direction: Vector3, height: float) -> Variant:
+	if not origin.is_finite() or not direction.is_finite() or absf(direction.y) <= direction.length() * 0.000001:
+		return null
+	var distance := (height - origin.y) / direction.y
+	if distance < 0.0 or not is_finite(distance):
+		return null
+	var point := origin + direction * distance
+	return point if point.is_finite() else null
+
+static func _snap_box_corner_size(grid_transform: Transform3D, height: float, size: Vector2, step: float) -> Vector2:
+	if step <= 0.0 or not is_finite(step):
+		return size
+	var width_axis := grid_transform.basis * Vector3.RIGHT
+	var depth_axis := grid_transform.basis * Vector3.FORWARD
+	# Solve two independent grid planes together; sequential axis snaps can
+	# undo each other on a rotated box. Drop the least informative coordinate.
+	var omitted := width_axis.cross(depth_axis).abs().max_axis_index()
+	var first := (omitted + 1) % 3
+	var second := (omitted + 2) % 3
+	var determinant := width_axis[first] * depth_axis[second] - width_axis[second] * depth_axis[first]
+	if not is_finite(determinant) or absf(determinant) <= width_axis.length() * depth_axis.length() * 0.000000001:
+		return size
+	var origin := grid_transform * Vector3(0, height, 0)
+	var point := origin + width_axis * size.x + depth_axis * size.y
+	var a := snappedf(point[first], step) - origin[first]
+	var b := snappedf(point[second], step) - origin[second]
+	var width := (a * depth_axis[second] - b * depth_axis[first]) / determinant
+	var depth := (width_axis[first] * b - width_axis[second] * a) / determinant
+	return Vector2(maxf(width, MIN_SIZE), maxf(depth, MIN_SIZE))
+
+static func _apply_box_corner_size(node: Node, size: Vector2, grid_transform: Transform3D = Transform3D.IDENTITY, step: float = 0.0) -> void:
+	if not size.is_finite():
+		return
+	var point := _handle_position(node, BOX_CORNER_HANDLE)
+	if size.distance_to(Vector2(point.x, -point.z)) < 0.00001:
+		return
+	size = Vector2(maxf(size.x, MIN_SIZE), maxf(size.y, MIN_SIZE))
+	var use_grid := step > 0.0 and is_finite(step)
+	var value: Vector3 = node.box_size
+	if use_grid:
+		size = _snap_box_corner_size(grid_transform, point.y, size, step)
+		if node.round_size:
+			value = _rounded_value(value)
+	elif node.round_size:
+		size = (size * 100.0 + Vector2.ONE * 0.5).floor() / 100.0
+	value.x = size.x
+	value.z = size.y
+	if use_grid:
+		_apply_grid_handle_changes(node, BOX_CORNER_HANDLE, {"box_size": value})
+	else:
+		node.box_size = value
+
 static func _coordinate_to_size(node: Node, id: int, coordinate: float) -> float:
+	if node.shape_type == Shape.ShapeType.RAILING and id == 1:
+		var distances := Generator.railing_joint_distances(node)
+		# The middle post rises by only its fraction of the end elevation.
+		return (coordinate - Generator.railing_height(node)) * distances[distances.size() - 1] / _railing_elevation_distance(distances)
 	if node.shape_type == Shape.ShapeType.STAIRS_CURVED and _handles(node)[id][0] == "step_width":
 		return coordinate - _dimension(node, "stairs_inner_radius")
 	return coordinate
@@ -211,6 +309,10 @@ static func _grid_handle_limits(node: Node, id: int) -> Vector2:
 				var opening := height - top - bottom
 				return Vector2(opening / 2.0 + maxf(MIN_SIZE, height * 0.01 - opening), height - opening / 2.0 - MIN_SIZE)
 	var property: String = _handles(node)[id][0]
+	if node.shape_type == Shape.ShapeType.RAILING and id == 0:
+		return Vector2(MIN_SIZE, 256.0)
+	if node.shape_type == Shape.ShapeType.RAILING and id == 2:
+		return Vector2(Generator.RAILING_MIN_HEIGHT, Generator.RAILING_MAX_HEIGHT)
 	if property in ["skewbox_endpoint", "railing_skew_elevation"]:
 		return Vector2(-INF, INF)
 	if node.shape_type == Shape.ShapeType.STAIRS_CURVED and property == "step_width":
@@ -241,10 +343,26 @@ static func _snap_axis_coordinate(grid_transform: Transform3D, axis_origin: Vect
 	return clampf((plane - origin) / speed, limits.x, limits.y)
 
 static func _snap_handle_coordinate(node: Node, id: int, coordinate: float, grid_transform: Transform3D, step: float) -> float:
+	if node.shape_type == Shape.ShapeType.RAILING and id == 1 and step > 0.0 and is_finite(step):
+		var distances := Generator.railing_joint_distances(node)
+		var total := distances[distances.size() - 1]
+		var fraction := _railing_elevation_distance(distances) / total
+		var height := Generator.railing_height(node)
+		var elevation := (coordinate - height) / fraction
+		# Snap the far bottom edge, not the middle post's top.
+		var snapped_elevation := _snap_axis_coordinate(grid_transform, Vector3(0,0,-total), Vector3.UP, elevation, step, Vector2(-INF,INF))
+		if absf(elevation) <= absf(elevation - snapped_elevation):
+			snapped_elevation = 0.0
+		return height + snapped_elevation * fraction
 	var axis := _handle_axis(node, id)
 	var point := _handle_position(node, id)
 	var axis_origin := point - axis * point.dot(axis)
-	return _snap_axis_coordinate(grid_transform, axis_origin, axis, coordinate, step, _grid_handle_limits(node, id))
+	var snapped := _snap_axis_coordinate(grid_transform, axis_origin, axis, coordinate, step, _grid_handle_limits(node, id))
+	if node.shape_type == Shape.ShapeType.RAILING and id == 2 and step > 0.0 and is_finite(step):
+		# Keep the one-layer minimum reachable between scene-grid planes.
+		if absf(coordinate - Generator.RAILING_MIN_HEIGHT) <= absf(coordinate - snapped):
+			return Generator.RAILING_MIN_HEIGHT
+	return snapped
 
 static func _snap_box_extent(grid_transform: Transform3D, id: int, size: float, step: float) -> float:
 	var direction := Vector3.ZERO
@@ -252,7 +370,9 @@ static func _snap_box_extent(grid_transform: Transform3D, id: int, size: float, 
 	return _snap_axis_coordinate(grid_transform, Vector3.ZERO, direction, size, step, Vector2(MIN_SIZE, INF))
 
 static func _apply_grid_handle_size(node: Node, id: int, size: float) -> void:
-	var values := _handle_changes(node, id, size, false)
+	_apply_grid_handle_changes(node, id, _handle_changes(node, id, size, false))
+
+static func _apply_grid_handle_changes(node: Node, id: int, values: Dictionary) -> void:
 	if values.is_empty():
 		return
 	var precise := false
@@ -265,8 +385,11 @@ static func _apply_grid_handle_size(node: Node, id: int, size: float) -> void:
 	if node.round_size and precise:
 		# All dimensions currently rounded by the generator must keep their
 		# visible values when exact snapping disables centimetre rounding.
+		var dimensions := {}
 		for property in _rounded_properties(node):
-			node.set(property, _rounded_value(node.get(property)))
+			dimensions[property] = _rounded_value(node.get(property))
+		for property in dimensions:
+			node.set(property, dimensions[property])
 		node.round_size = false
 	elif node.round_size:
 		# A centimetre-aligned edit leaves untouched raw vector components intact.
@@ -274,7 +397,11 @@ static func _apply_grid_handle_size(node: Node, id: int, size: float) -> void:
 		var property: String = entry[0]
 		if values.has(property) and values[property] is Vector3:
 			var vector: Vector3 = node.get(property)
-			vector[entry[1]] = values[property][entry[1]]
+			if _is_box_corner_handle(node, id):
+				vector.x = values[property].x
+				vector.z = values[property].z
+			else:
+				vector[entry[1]] = values[property][entry[1]]
 			values[property] = vector
 	for property in values:
 		node.set(property, values[property])
@@ -289,6 +416,21 @@ static func _bounded_size(node: Node, value: float, maximum: float, rounded: boo
 	return clampf(value, MIN_SIZE, maxf(MIN_SIZE, maximum))
 
 static func _handle_changes(node: Node, id: int, size: float, rounded: bool = true) -> Dictionary:
+	if node.shape_type == Shape.ShapeType.RAILING and id == 0:
+		size = clampf(size, MIN_SIZE, 256.0)
+		if rounded and node.round_size:
+			size = floorf(size * 100 + 0.5) / 100
+		var distances := Generator.railing_joint_distances(node)
+		if absf(size - distances[distances.size() - 1]) < 0.000001:
+			return {}
+		var count := clampi(ceili(size), 1, 256)
+		return {
+			"railing_sections": count,
+			"railing_section_length": 1.0,
+			"_railing_last_section_length": size - float(count - 1),
+		}
+	if node.shape_type == Shape.ShapeType.RAILING and id == 2:
+		size = clampf(size, Generator.RAILING_MIN_HEIGHT, Generator.RAILING_MAX_HEIGHT)
 	if _is_opening_handle(node, id):
 		var width := _dimension(node, "doorway_width")
 		var height := _dimension(node, "doorway_height")

@@ -1,12 +1,13 @@
 shader_type spatial;
 render_mode diffuse_burley, cull_back;
 
-uniform vec4 base_color : source_color = vec4(1.0, 0.3, 0.05, 1.0);
+uniform vec4 base_color : source_color = vec4(0.619607843, 0.619607843, 0.619607843, 1.0);
 uniform vec4 top_color : source_color = vec4(0.25, 0.25, 0.25, 1.0);
 uniform bool use_grid = true;
 uniform bool world_aligned = false;
 uniform bool use_top_color = true;
-uniform float grid_size = 1.0;
+uniform float grid_size = 0.5;
+uniform int grid_subdivisions : hint_range(1, 100, 1) = 5;
 uniform float checker_luminance : hint_range(0.0, 1.0) = 0.3;
 uniform float roughness : hint_range(0.0, 1.0) = 0.3;
 varying vec3 local_position;
@@ -32,11 +33,11 @@ float grid_lines(vec2 cell, float half_width) {
 	return max(coverage.x * resolved.x, coverage.y * resolved.y);
 }
 
-// Grid Size measures major spacing. Each major cell has ten minor divisions.
+// Grid Size measures major spacing; subdivisions control the minor spacing.
 vec3 grid_pattern(vec2 position) {
 	vec2 cell = position / max(grid_size, 0.0001);
 	float major = grid_lines(cell, 0.012);
-	float minor = grid_lines(cell * 10.0, 0.015);
+	float minor = grid_lines(cell * float(clamp(grid_subdivisions, 1, 100)), 0.015);
 	vec2 pixel = max(fwidth(cell), vec2(0.0001));
 	float resolved = 1.0 - smoothstep(0.2, 0.8, max(pixel.x, pixel.y));
 	float checker = mod(floor(cell.x) + floor(cell.y), 2.0);

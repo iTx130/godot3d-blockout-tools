@@ -9,6 +9,7 @@ var shape_option: OptionButton
 var add_button: Button
 var rebuild_button: Button
 var default_box_size_inputs: Array[LineEdit] = []
+var default_blockout_material_picker: ColorPickerButton
 
 ## Keep these labels explicitly in English. The numeric order is the public
 ## ShapeType order used by BlockoutShape and the generator.
@@ -91,9 +92,24 @@ func _ready() -> void:
 		default_box_size_inputs.append(input)
 		axis_group.add_child(input)
 		axis_row.add_child(axis_group)
+	var default_material_label := Label.new()
+	default_material_label.text = "Default Blockout Material"
+	default_material_label.tooltip_text = "Default base color for newly created Blockout shapes. Existing shapes are unchanged."
+	add_child(default_material_label)
+	default_blockout_material_picker = ColorPickerButton.new()
+	default_blockout_material_picker.edit_alpha = false
+	default_blockout_material_picker.color = DEFAULTS.get_default_blockout_material_color()
+	default_blockout_material_picker.tooltip_text = default_material_label.tooltip_text
+	default_blockout_material_picker.color_changed.connect(_on_default_blockout_material_color_changed)
+	add_child(default_blockout_material_picker)
+	input_panel.minimum_size_changed.connect(_sync_default_material_height.bind(input_panel))
+	_sync_default_material_height(input_panel)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(spacer)
+
+func _sync_default_material_height(input_panel: Control) -> void:
+	default_blockout_material_picker.custom_minimum_size.y = input_panel.get_combined_minimum_size().y
 
 func _format_box_size(value: float) -> String:
 	var formatted := "%.2f" % value
@@ -115,6 +131,9 @@ func _on_default_box_size_submitted(text: String, axis: int) -> void:
 
 func _on_default_box_size_focus_exited(input: LineEdit, axis: int) -> void:
 	_on_default_box_size_submitted(input.text, axis)
+
+func _on_default_blockout_material_color_changed(color: Color) -> void:
+	DEFAULTS.set_default_blockout_material_color(color)
 
 func _on_add_pressed() -> void:
 	if plugin:

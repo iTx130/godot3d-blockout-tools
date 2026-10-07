@@ -29,10 +29,10 @@ var shape_type: int = 0:
 		request_rebuild()
 
 ## Fraction of the editor translation snap step used by this shape's handles.
-## 0.1 gives ten divisions per grid cell; Ctrl/Shift keep their editor behavior.
-@export_range(0.001, 1.0, 0.001, "or_greater") var grid_snap_ratio: float = 0.1:
+## 1.0 follows the editor grid step; Ctrl/Shift keep their editor behavior.
+@export_range(0.001, 1.0, 0.001, "or_greater") var grid_snap_ratio: float = 1.0:
 	set(value):
-		grid_snap_ratio = maxf(value, 0.001) if is_finite(value) else 0.1
+		grid_snap_ratio = maxf(value, 0.001) if is_finite(value) else 1.0
 
 @export_category("Box")
 ## Godot local X/Y/Z extents in metres. The base corner remains at the origin.
@@ -125,10 +125,23 @@ var shape_type: int = 0:
 @export_range(1, 256, 1) var railing_sections: int = 2:
 	set(value):
 		railing_sections = value
+		_railing_last_section_length = -1.0
 		request_rebuild()
-@export_range(0.01, 100.0, 0.01, "or_greater") var railing_section_length: float = 1.2:
+@export_range(0.01, 100.0, 0.01, "or_greater") var railing_section_length: float = 1.0:
 	set(value):
 		railing_section_length = value
+		_railing_last_section_length = -1.0
+		request_rebuild()
+## Length drags preserve full metre spans and store the final partial span.
+## Negative values retain the legacy uniform-section layout.
+@export_storage var _railing_last_section_length: float = -1.0:
+	set(value):
+		_railing_last_section_length = value
+		request_rebuild()
+## Open railings grow a layer every half metre, with at least one layer.
+@export_range(0.5, 128.0, 0.01) var railing_height: float = 1.0:
+	set(value):
+		railing_height = clampf(value, Generator.RAILING_MIN_HEIGHT, Generator.RAILING_MAX_HEIGHT) if is_finite(value) else 1.0
 		request_rebuild()
 @export var railing_skew_elevation: float = 0.0:
 	set(value):
@@ -268,7 +281,7 @@ var custom_material: Material = null:
 	set(value):
 		custom_material = value
 		request_material_update()
-@export_color_no_alpha var blockout_material_color: Color = Color(1.0, 0.3, 0.05):
+@export_color_no_alpha var blockout_material_color: Color = Color("9e9e9e"):
 	set(value):
 		blockout_material_color = value
 		request_material_update()
@@ -284,10 +297,15 @@ var custom_material: Material = null:
 	set(value):
 		world_aligned = value
 		request_material_update()
-## Major grid spacing in metres; thin lines divide each major cell into tenths.
-@export_range(0.01, 100.0, 0.01, "or_greater") var grid_size: float = 1.0:
+## Major grid spacing in metres; Grid Subdivisions controls the minor spacing.
+@export_range(0.01, 100.0, 0.01, "or_greater") var grid_size: float = 0.5:
 	set(value):
 		grid_size = value
+		request_material_update()
+## Divisions per major grid cell; minor spacing is Grid Size / Grid Subdivisions.
+@export_range(1, 100, 1) var grid_subdivisions: int = 5:
+	set(value):
+		grid_subdivisions = clampi(value, 1, 100)
 		request_material_update()
 @export_range(0, 1, 0.01) var checker_luminance: float = 0.3:
 	set(value):
@@ -330,7 +348,7 @@ var custom_material: Material = null:
 		cast_shadows = value
 		request_rebuild()
 
-const PROPERTY_SHAPES: Dictionary = {"box_size":[0],"cone_radius":[1],"cone_height":[1],"cylinder_radius":[4],"cylinder_height":[4],"quality":[1,4],"corner_curved_radius":[2],"corner_curved_height":[2],"corner_curved_quality":[2],"corner_curved_inner":[2],"ramp_width":[3,7],"ramp_depth":[3,7],"ramp_height":[3,7],"doorway_width":[5,14],"doorway_height":[5,14],"doorway_depth":[5,14],"side_thickness":[5,14],"top_thickness":[5,14],"bottom_thickness":[14],"railing_sections":[6],"railing_section_length":[6],"railing_skew_elevation":[6],"railing_type":[6],"railing_has_end_pole":[6],"skewbox_endpoint":[8],"skewbox_start_size":[8],"skewbox_end_size":[8],"skewbox_alignment":[8],"sphere_radius":[9],"sphere_quality":[9],"sphere_hemisphere":[9],"number_of_steps":[10,11,12],"stairs_type":[10,11,12],"stairs_size":[11],"step_width":[10,12],"step_depth":[12],"step_height":[12],"step_depth_spacing":[12],"step_height_spacing":[12],"stairs_inner_radius":[10],"stairs_height":[10],"stairs_angle":[10],"stairs_counter_clockwise":[10],"tube_radius":[13],"tube_thickness":[13],"tube_height":[13],"tube_angle":[13],"tube_sections":[13],"tube_alignment":[13]}
+const PROPERTY_SHAPES: Dictionary = {"box_size":[0],"cone_radius":[1],"cone_height":[1],"cylinder_radius":[4],"cylinder_height":[4],"quality":[1,4],"corner_curved_radius":[2],"corner_curved_height":[2],"corner_curved_quality":[2],"corner_curved_inner":[2],"ramp_width":[3,7],"ramp_depth":[3,7],"ramp_height":[3,7],"doorway_width":[5,14],"doorway_height":[5,14],"doorway_depth":[5,14],"side_thickness":[5,14],"top_thickness":[5,14],"bottom_thickness":[14],"railing_sections":[6],"railing_section_length":[6],"_railing_last_section_length":[6],"railing_height":[6],"railing_skew_elevation":[6],"railing_type":[6],"railing_has_end_pole":[6],"skewbox_endpoint":[8],"skewbox_start_size":[8],"skewbox_end_size":[8],"skewbox_alignment":[8],"sphere_radius":[9],"sphere_quality":[9],"sphere_hemisphere":[9],"number_of_steps":[10,11,12],"stairs_type":[10,11,12],"stairs_size":[11],"step_width":[10,12],"step_depth":[12],"step_height":[12],"step_depth_spacing":[12],"step_height_spacing":[12],"stairs_inner_radius":[10],"stairs_height":[10],"stairs_angle":[10],"stairs_counter_clockwise":[10],"tube_radius":[13],"tube_thickness":[13],"tube_height":[13],"tube_angle":[13],"tube_sections":[13],"tube_alignment":[13]}
 var _mesh_instance: MeshInstance3D
 var _static_body: StaticBody3D
 var _collision_shape: CollisionShape3D
@@ -353,7 +371,7 @@ func _validate_property(property: Dictionary) -> void:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
 	if property.name == "custom_material" and material_type != 1:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
-	if material_type == 1 and property.name in ["blockout_material_color", "use_grid", "world_aligned", "grid_size", "checker_luminance", "roughness", "use_top_color", "top_color"]:
+	if material_type == 1 and property.name in ["blockout_material_color", "use_grid", "world_aligned", "grid_size", "grid_subdivisions", "checker_luminance", "roughness", "use_top_color", "top_color"]:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
 
 func _enter_tree() -> void:
@@ -430,7 +448,7 @@ func _update_material() -> void:
 	if _grid_material == null:
 		_grid_material = ShaderMaterial.new()
 		_grid_material.shader = GRID_SHADER
-	for key in ["use_grid", "world_aligned", "grid_size", "checker_luminance", "roughness", "use_top_color"]:
+	for key in ["use_grid", "world_aligned", "grid_size", "grid_subdivisions", "checker_luminance", "roughness", "use_top_color"]:
 		_grid_material.set_shader_parameter(key, get(key))
 	_grid_material.set_shader_parameter("base_color", blockout_material_color)
 	_grid_material.set_shader_parameter("top_color", top_color)

@@ -2,10 +2,10 @@
 extends RefCounted
 ## Project-wide defaults affect newly created shapes, never existing scene instances.
 const VALUES = {
-	"material_type":0, "blockout_material_color":Color("9e9e9e"),
+	"material_type":0, "blockout_material_color":Color("8a9ba8"),
 	"use_grid":true, "world_aligned":false, "grid_size":0.5, "grid_subdivisions":5,
 	"checker_luminance":0.3, "roughness":0.3,
-	"use_top_color":true, "top_color":Color(0.25,0.25,0.25)
+	"use_top_color":true, "top_color":Color(0.25,0.25,0.25), "top_roughness":0.8
 }
 const PREFIX = "blockout_tools/material_defaults/"
 
@@ -19,7 +19,7 @@ static func register_settings() -> void:
 		var info := {"name":key,"type":typeof(VALUES[property])}
 		if property == "material_type":
 			info.merge({"hint":PROPERTY_HINT_ENUM,"hint_string":"Blockout Grid,Custom Material"})
-		elif property in ["roughness","checker_luminance"]:
+		elif property in ["roughness","checker_luminance","top_roughness"]:
 			info.merge({"hint":PROPERTY_HINT_RANGE,"hint_string":"0,1,0.01"})
 		elif property == "grid_size":
 			info.merge({"hint":PROPERTY_HINT_RANGE,"hint_string":"0.01,100,0.01,or_greater"})

@@ -156,11 +156,20 @@ static func _sphere(b: BlockoutMeshBuilder, radius: float, segments: int, hemisp
 	b.collider(hull)
 
 static func _corner(b: BlockoutMeshBuilder, radius: float, height: float, segments: int, inner: bool) -> void:
-	var anchor := Vector2(radius,-radius) if inner else Vector2.ZERO
 	for i in range(segments):
-		var a := _ring(radius,PI*0.5*float(i)/segments)
-		var c := _ring(radius,PI*0.5*float(i+1)/segments)
-		_column(b,PackedVector2Array([anchor,Vector2(a.x,a.z),Vector2(c.x,c.z)]),0,height)
+		var a := _corner_arc(radius,PI*0.5*float(i)/segments,inner)
+		var c := _corner_arc(radius,PI*0.5*float(i+1)/segments,inner)
+		_column(b,PackedVector2Array([Vector2.ZERO,a,c]),0,height)
+
+## Arc from (radius, 0) to (0, -radius). Outer bulges away from the origin;
+## inner is centred on the opposite corner, so the same solid curves inward.
+static func _corner_arc(radius: float, angle: float, inner: bool) -> Vector2:
+	if not inner:
+		var point := _ring(radius,angle)
+		return Vector2(point.x,point.z)
+	var x := 1.0 - sin(angle)
+	var z := cos(angle) - 1.0
+	return Vector2(0.0 if absf(x) < 1e-7 else radius*x, 0.0 if absf(z) < 1e-7 else radius*z)
 
 static func _opening(b: BlockoutMeshBuilder, p: Node) -> void:
 	var rounded: bool = p.round_size

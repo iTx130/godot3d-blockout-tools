@@ -1,7 +1,7 @@
 shader_type spatial;
 render_mode diffuse_burley, cull_back;
 
-uniform vec4 base_color : source_color = vec4(0.619607843, 0.619607843, 0.619607843, 1.0);
+uniform vec4 base_color : source_color = vec4(0.541176471, 0.607843137, 0.658823529, 1.0);
 uniform vec4 top_color : source_color = vec4(0.25, 0.25, 0.25, 1.0);
 uniform bool use_grid = true;
 uniform bool world_aligned = false;
@@ -10,6 +10,7 @@ uniform float grid_size = 0.5;
 uniform int grid_subdivisions : hint_range(1, 100, 1) = 5;
 uniform float checker_luminance : hint_range(0.0, 1.0) = 0.3;
 uniform float roughness : hint_range(0.0, 1.0) = 0.3;
+uniform float top_roughness : hint_range(0.0, 1.0) = 0.8;
 varying vec3 local_position;
 varying vec3 local_normal;
 varying vec3 world_position;
@@ -59,5 +60,5 @@ void fragment() {
 		color = mix(color, vec3(0.8), pattern.x);
 	}
 	ALBEDO = color;
-	ROUGHNESS = roughness;
+	ROUGHNESS = mix(roughness, top_roughness, top);
 }

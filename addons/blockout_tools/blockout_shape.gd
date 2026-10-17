@@ -72,7 +72,7 @@ var shape_type: int = 0:
 	set(value):
 		corner_curved_height = value
 		request_rebuild()
-@export_range(1, 4, 1) var corner_curved_quality: int = 1:
+@export_range(1, 4, 1) var corner_curved_quality: int = 4:
 	set(value):
 		corner_curved_quality = value
 		request_rebuild()
@@ -284,7 +284,7 @@ var custom_material: Material = null:
 	set(value):
 		custom_material = value
 		request_material_update()
-@export_color_no_alpha var blockout_material_color: Color = Color("9e9e9e"):
+@export_color_no_alpha var blockout_material_color: Color = Color("8a9ba8"):
 	set(value):
 		blockout_material_color = value
 		request_material_update()
@@ -327,6 +327,11 @@ var custom_material: Material = null:
 @export_color_no_alpha var top_color: Color = Color(0.25, 0.25, 0.25):
 	set(value):
 		top_color = value
+		request_material_update()
+## Roughness of upward- and downward-facing surfaces while Use Top Color is on.
+@export_range(0, 1, 0.01) var top_roughness: float = 0.8:
+	set(value):
+		top_roughness = value
 		request_material_update()
 
 @export_category("Collision / Rendering")
@@ -374,7 +379,7 @@ func _validate_property(property: Dictionary) -> void:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
 	if property.name == "custom_material" and material_type != 1:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
-	if material_type == 1 and property.name in ["blockout_material_color", "use_grid", "world_aligned", "grid_size", "grid_subdivisions", "checker_luminance", "roughness", "use_top_color", "top_color"]:
+	if material_type == 1 and property.name in ["blockout_material_color", "use_grid", "world_aligned", "grid_size", "grid_subdivisions", "checker_luminance", "roughness", "use_top_color", "top_color", "top_roughness"]:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
 
 func _enter_tree() -> void:
@@ -461,7 +466,7 @@ func _update_material() -> void:
 	if _grid_material == null:
 		_grid_material = ShaderMaterial.new()
 		_grid_material.shader = GRID_SHADER
-	for key in ["use_grid", "world_aligned", "grid_size", "grid_subdivisions", "checker_luminance", "roughness", "use_top_color"]:
+	for key in ["use_grid", "world_aligned", "grid_size", "grid_subdivisions", "checker_luminance", "roughness", "use_top_color", "top_roughness"]:
 		_grid_material.set_shader_parameter(key, get(key))
 	_grid_material.set_shader_parameter("base_color", blockout_material_color)
 	_grid_material.set_shader_parameter("top_color", top_color)

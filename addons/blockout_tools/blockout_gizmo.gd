@@ -7,6 +7,7 @@ const Generator = preload("shape_generator.gd")
 const MIN_SIZE := 0.01
 const OPENING_HANDLES := 3
 const BOX_CORNER_HANDLE := 3
+const RAILING_LAYOUT_KEYS: Array[String] = ["railing_sections", "railing_section_length", "_railing_last_section_length"]
 const ROUNDED_PROPERTIES: Array[String] = [
 	"box_size", "cone_radius", "cone_height", "cylinder_radius", "cylinder_height",
 	"corner_curved_radius", "corner_curved_height", "ramp_width", "ramp_depth", "ramp_height",
@@ -388,8 +389,7 @@ static func _apply_grid_handle_changes(node: Node, id: int, values: Dictionary) 
 		var dimensions := {}
 		for property in _rounded_properties(node):
 			dimensions[property] = _rounded_value(node.get(property))
-		for property in dimensions:
-			node.set(property, dimensions[property])
+		_assign_properties(node, dimensions)
 		node.round_size = false
 	elif node.round_size:
 		# A centimetre-aligned edit leaves untouched raw vector components intact.
@@ -403,8 +403,7 @@ static func _apply_grid_handle_changes(node: Node, id: int, values: Dictionary) 
 			else:
 				vector[entry[1]] = values[property][entry[1]]
 			values[property] = vector
-	for property in values:
-		node.set(property, values[property])
+	_assign_properties(node, values)
 
 static func _apply_box_grid_size(node: Node3D, id: int, size: float) -> void:
 	_apply_grid_handle_size(node, id, size)
@@ -467,20 +466,42 @@ static func _handle_changes(node: Node, id: int, size: float, rounded: bool = tr
 	return {entry[0]: value}
 
 static func _apply_handle_size(node: Node, id: int, size: float) -> void:
-	var values := _handle_changes(node, id, size)
-	for property in values:
-		node.set(property, values[property])
+	_assign_properties(node, _handle_changes(node, id, size))
+
+## Writes properties, applying the railing span layout atomically so the result
+## never depends on dictionary key order.
+static func _assign_properties(node: Node, values: Dictionary) -> void:
+	var has_layout := false
+	for key in RAILING_LAYOUT_KEYS:
+		has_layout = has_layout or values.has(key)
+	if has_layout:
+		node.set_railing_layout(
+			int(values.get("railing_sections", node.railing_sections)),
+			float(values.get("railing_section_length", node.railing_section_length)),
+			float(values.get("_railing_last_section_length", node._railing_last_section_length)))
+	for key in values:
+		if key not in RAILING_LAYOUT_KEYS:
+			node.set(key, values[key])
 
 func _commit_handle(gizmo: EditorNode3DGizmo, id: int, _secondary: bool, restore: Variant, cancel: bool) -> void:
 	var node := gizmo.get_node_3d()
 	var property: String = _handles(node)[id][0]
 	var previous: Dictionary = restore if restore is Dictionary else {property: restore}
 	if cancel:
-		for key in previous:
-			node.set(key, previous[key])
+		_assign_properties(node, previous)
 	elif history != null:
 		history.create_action("Resize Blockout " + property)
+		var has_layout := false
+		for key in RAILING_LAYOUT_KEYS:
+			has_layout = has_layout or previous.has(key)
+		if has_layout:
+			history.add_do_method(node, "set_railing_layout", node.railing_sections, node.railing_section_length, node._railing_last_section_length)
+			history.add_undo_method(node, "set_railing_layout",
+				int(previous.get("railing_sections", node.railing_sections)),
+				float(previous.get("railing_section_length", node.railing_section_length)),
+				float(previous.get("_railing_last_section_length", node._railing_last_section_length)))
 		for key in previous:
-			history.add_do_property(node, key, node.get(key))
-			history.add_undo_property(node, key, previous[key])
+			if key not in RAILING_LAYOUT_KEYS:
+				history.add_do_property(node, key, node.get(key))
+				history.add_undo_property(node, key, previous[key])
 		history.commit_action()

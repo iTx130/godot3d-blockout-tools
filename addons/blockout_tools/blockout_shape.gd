@@ -122,15 +122,18 @@ var shape_type: int = 0:
 		request_rebuild()
 
 @export_category("Railing")
+var _railing_layout_batch := false
 @export_range(1, 256, 1) var railing_sections: int = 2:
 	set(value):
 		railing_sections = value
-		_railing_last_section_length = -1.0
+		if not _railing_layout_batch:
+			_railing_last_section_length = -1.0
 		request_rebuild()
 @export_range(0.01, 100.0, 0.01, "or_greater") var railing_section_length: float = 1.0:
 	set(value):
 		railing_section_length = value
-		_railing_last_section_length = -1.0
+		if not _railing_layout_batch:
+			_railing_last_section_length = -1.0
 		request_rebuild()
 ## Length drags preserve full metre spans and store the final partial span.
 ## Negative values retain the legacy uniform-section layout.
@@ -376,6 +379,16 @@ func _validate_property(property: Dictionary) -> void:
 
 func _enter_tree() -> void:
 	request_rebuild()
+
+## Sets the railing span layout as one unit. A negative last_length keeps the
+## uniform layout. Unlike assigning the properties one by one, the result does
+## not depend on assignment order.
+func set_railing_layout(sections: int, section_length: float, last_length: float = -1.0) -> void:
+	_railing_layout_batch = true
+	railing_sections = sections
+	railing_section_length = section_length
+	_railing_last_section_length = last_length
+	_railing_layout_batch = false
 
 func request_rebuild() -> void:
 	if not is_inside_tree() or _queued:

@@ -198,7 +198,8 @@ static func railing_height(p: Node) -> float:
 
 static func railing_layer_heights(p: Node) -> PackedFloat64Array:
 	var height := railing_height(p)
-	var count := clampi(ceili(height / RAILING_LAYER_STEP), 1, 256)
+	# The tolerance keeps float noise above a whole layer (e.g. 1.0000001) from adding a coincident layer.
+	var count := clampi(ceili(height / RAILING_LAYER_STEP - 0.000001), 1, 256)
 	var heights := PackedFloat64Array()
 	for i in range(count):
 		heights.append(minf(RAILING_LAYER_STEP * (i + 1), height) - 0.15)

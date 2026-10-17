@@ -8,7 +8,6 @@ var plugin: EditorPlugin
 var shape_option: OptionButton
 var add_button: Button
 var rebuild_button: Button
-var default_box_size_inputs: Array[LineEdit] = []
 var default_blockout_material_picker: ColorPickerButton
 
 ## Keep these labels explicitly in English. The numeric order is the public
@@ -18,8 +17,6 @@ const SHAPES := [
 	"Railing", "Ramp", "Skewbox", "Sphere", "Stairs Curved", "Stairs Linear",
 	"Stairs Linear Manual", "Tube", "Window"
 ]
-const BOX_SIZE_AXIS_LABELS := ["x", "y", "z"]
-const BOX_SIZE_AXIS_COLORS := [Color("c65a68"), Color("82a94b"), Color("517cad")]
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(235, 0)
@@ -49,88 +46,38 @@ func _ready() -> void:
 	add_child(rebuild_button)
 	var separator := HSeparator.new()
 	add_child(separator)
-	var default_box_size_label := Label.new()
-	default_box_size_label.text = "Default Box Size"
-	default_box_size_label.tooltip_text = "Default size for newly created Box shapes, in metres."
-	add_child(default_box_size_label)
-	var default_box_size := DEFAULTS.get_default_box_size()
-	var input_panel := PanelContainer.new()
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("191919")
-	panel_style.corner_radius_top_left = 6
-	panel_style.corner_radius_top_right = 6
-	panel_style.corner_radius_bottom_left = 6
-	panel_style.corner_radius_bottom_right = 6
-	panel_style.content_margin_left = 8.0
-	panel_style.content_margin_top = 4.0
-	panel_style.content_margin_right = 8.0
-	panel_style.content_margin_bottom = 4.0
-	input_panel.add_theme_stylebox_override("panel", panel_style)
-	add_child(input_panel)
-	var axis_row := HBoxContainer.new()
-	axis_row.add_theme_constant_override("separation", 8)
-	input_panel.add_child(axis_row)
-	for axis in 3:
-		var axis_group := HBoxContainer.new()
-		axis_group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		axis_group.add_theme_constant_override("separation", 3)
-		var axis_label := Label.new()
-		axis_label.text = BOX_SIZE_AXIS_LABELS[axis]
-		axis_label.custom_minimum_size.x = 16.0
-		axis_label.add_theme_color_override("font_color", BOX_SIZE_AXIS_COLORS[axis])
-		axis_group.add_child(axis_label)
-		var input := LineEdit.new()
-		input.flat = true
-		input.custom_minimum_size.x = 42.0
-		input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		input.select_all_on_focus = true
-		input.text = _format_box_size(default_box_size[axis])
-		input.tooltip_text = "%s axis, metres" % BOX_SIZE_AXIS_LABELS[axis].to_upper()
-		input.add_theme_constant_override("minimum_character_width", 2)
-		input.text_submitted.connect(_on_default_box_size_submitted.bind(axis))
-		input.focus_exited.connect(_on_default_box_size_focus_exited.bind(input, axis))
-		default_box_size_inputs.append(input)
-		axis_group.add_child(input)
-		axis_row.add_child(axis_group)
 	var default_material_label := Label.new()
 	default_material_label.text = "Default Blockout Material"
 	default_material_label.tooltip_text = "Default base color for newly created Blockout shapes. Existing shapes are unchanged."
 	add_child(default_material_label)
 	default_blockout_material_picker = ColorPickerButton.new()
 	default_blockout_material_picker.edit_alpha = false
+	_update_picker_height()
 	default_blockout_material_picker.color = DEFAULTS.get_default_blockout_material_color()
 	default_blockout_material_picker.tooltip_text = default_material_label.tooltip_text
 	default_blockout_material_picker.color_changed.connect(_on_default_blockout_material_color_changed)
+	# Dragging in the picker emits color_changed continuously; write project.godot once on close.
+	default_blockout_material_picker.popup_closed.connect(DEFAULTS.save_settings)
 	add_child(default_blockout_material_picker)
-	input_panel.minimum_size_changed.connect(_sync_default_material_height.bind(input_panel))
-	_sync_default_material_height(input_panel)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(spacer)
 
-func _sync_default_material_height(input_panel: Control) -> void:
-	default_blockout_material_picker.custom_minimum_size.y = input_panel.get_combined_minimum_size().y
+## The Inspector sizes its color property from this editor theme constant. The
+## dock may not inherit the editor theme yet in _ready, so refresh on theme changes.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_THEME_CHANGED or what == NOTIFICATION_VISIBILITY_CHANGED:
+		_update_picker_height()
 
-func _format_box_size(value: float) -> String:
-	var formatted := "%.2f" % value
-	if formatted.ends_with("0"):
-		formatted = formatted.left(-1)
-	return formatted
-
-func _on_default_box_size_submitted(text: String, axis: int) -> void:
-	var input := default_box_size_inputs[axis]
-	var normalized := text.strip_edges()
-	if not normalized.is_valid_float():
-		input.text = _format_box_size(DEFAULTS.get_default_box_size()[axis])
+func _update_picker_height() -> void:
+	if default_blockout_material_picker == null:
 		return
-	var value := maxf(normalized.to_float(), 0.01)
-	var default_box_size := DEFAULTS.get_default_box_size()
-	default_box_size[axis] = value
-	DEFAULTS.set_default_box_size(default_box_size)
-	input.text = _format_box_size(value)
-
-func _on_default_box_size_focus_exited(input: LineEdit, axis: int) -> void:
-	_on_default_box_size_submitted(input.text, axis)
+	var height := 28.0
+	if has_theme_constant("color_picker_button_height", "Editor"):
+		height = float(get_theme_constant("color_picker_button_height", "Editor"))
+	elif Engine.is_editor_hint():
+		height *= EditorInterface.get_editor_scale()
+	default_blockout_material_picker.custom_minimum_size.y = height
 
 func _on_default_blockout_material_color_changed(color: Color) -> void:
 	DEFAULTS.set_default_blockout_material_color(color)
